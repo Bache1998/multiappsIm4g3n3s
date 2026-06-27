@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#151828" />
+  <title>MarcaPro · Editor móvil</title>
+  <style>
+    :root{--bg:#0c0f17;--panel:#14192a;--panel2:#1a2034;--line:rgba(255,255,255,.10);--text:#f7f8ff;--muted:#acb3cb;--accent:#8b6dff;--green:#43d39e;--danger:#ff5d79;--radius:22px;--shadow:0 18px 60px rgba(0,0,0,.35);--safe-bottom: env(safe-area-inset-bottom, 0px)}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif} body{min-height:100dvh}
+    button,input,textarea,select{font:inherit} button{border:0;cursor:pointer} button:disabled{opacity:.45;cursor:default} input[type="range"]{accent-color:var(--accent)}
+    .app-shell{width:min(1180px,100%);min-height:100dvh;margin:0 auto;padding:18px 18px calc(20px + var(--safe-bottom))}.screen{display:none;min-height:calc(100dvh - 38px)}.screen.active{display:block}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:11px;min-width:0}.brand-mark{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;font-size:22px;font-weight:900;background:linear-gradient(135deg,#9d85ff 0%,#7455f1 48%,#45d3af 110%);box-shadow:0 10px 26px rgba(116,84,237,.40)}.brand h1{margin:0;font-size:20px;letter-spacing:-.45px}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .local-pill,.info-pill,.status-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:8px 10px;font-size:12px;color:#e0e4f2;background:rgba(255,255,255,.04);white-space:nowrap}.local-dot{width:7px;height:7px;border-radius:999px;background:var(--green);box-shadow:0 0 0 4px rgba(67,211,158,.14)}
+    .hero-card{position:relative;overflow:hidden;border-radius:28px;padding:28px;background:linear-gradient(135deg,#30246d 0%,#1c2142 48%,#132e36 100%);border:1px solid rgba(255,255,255,.11);box-shadow:var(--shadow)}.hero-card::before,.hero-card::after{content:"";position:absolute;border-radius:50%;opacity:.45;filter:blur(4px)}.hero-card::before{width:280px;height:280px;right:-100px;top:-120px;background:#8b75ff}.hero-card::after{width:280px;height:280px;left:35%;bottom:-180px;background:#2dd4a3}.hero-content{position:relative;z-index:1;max-width:680px}.eyebrow{margin:0 0 9px;color:#ddd4ff;font-size:12px;font-weight:780;letter-spacing:.08em;text-transform:uppercase}.hero-card h2{margin:0;font-size:clamp(30px,5vw,46px);line-height:1.05;letter-spacing:-1.4px}.hero-card h2 strong{color:#bafceb}.hero-card .lead{margin:14px 0 22px;color:#ebedf8;line-height:1.56;max-width:620px}
+    .primary-btn,.secondary-btn,.ghost-btn,.danger-btn,.tool-btn,.small-btn,.tab-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:15px;padding:13px 16px;font-weight:760;transition:transform .18s ease,background .18s ease,border-color .18s ease,opacity .18s ease}.primary-btn:active,.secondary-btn:active,.ghost-btn:active,.tool-btn:active,.small-btn:active,.tab-btn:active{transform:scale(.97)}.primary-btn{color:#171222;background:#ece6ff;box-shadow:0 10px 22px rgba(12,10,30,.24)}.primary-btn:hover{background:#fff}.secondary-btn{color:#edf0ff;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15)}.ghost-btn{color:#e8ebfb;background:var(--panel2);border:1px solid var(--line)}.danger-btn{color:#fff;background:rgba(255,93,121,.14);border:1px solid rgba(255,93,121,.34)}.small-btn{padding:10px 12px;border-radius:12px;font-size:13px;color:var(--text);background:var(--panel2);border:1px solid var(--line)}.icon{font-size:18px;line-height:1}
+    .section-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:28px 0 14px}.section-heading h3{margin:0;font-size:18px;letter-spacing:-.35px}.section-heading p{margin:3px 0 0;color:var(--muted);font-size:13px}
+    .projects-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.project-card{position:relative;overflow:hidden;min-height:260px;border-radius:var(--radius);background:var(--panel);border:1px solid var(--line);box-shadow:0 12px 28px rgba(0,0,0,.14);cursor:pointer;transition:transform .18s ease,border-color .18s ease}.project-card:hover{transform:translateY(-3px);border-color:rgba(180,162,255,.42)}.project-thumb-wrap{height:155px;background:linear-gradient(135deg,#2b3046,#141725);overflow:hidden}.project-thumb{width:100%;height:100%;object-fit:cover;display:block}.project-card-body{padding:14px}.project-card-title{font-size:16px;font-weight:790;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project-card-meta{margin-top:6px;color:var(--muted);font-size:12px}.card-actions{display:flex;gap:8px;margin-top:14px}.card-actions .small-btn{flex:1;padding:9px;font-size:12px}.empty-card{grid-column:1/-1;display:grid;place-items:center;text-align:center;min-height:245px;border:1px dashed rgba(255,255,255,.20);border-radius:var(--radius);color:var(--muted);background:rgba(255,255,255,.018);padding:28px}.empty-card .empty-icon{font-size:42px;margin-bottom:8px}.empty-card h3{color:var(--text);margin:5px 0 7px}.empty-card p{margin:0;max-width:430px;line-height:1.45}
+    .back-btn{width:42px;height:42px;padding:0;border-radius:13px}.new-layout{max-width:760px;margin:3vh auto}.form-card{background:var(--panel);border:1px solid var(--line);border-radius:27px;padding:24px;box-shadow:var(--shadow)}.form-card h2{margin:0 0 6px;letter-spacing:-.5px}.form-card > p{margin:0 0 22px;color:var(--muted);line-height:1.5}
+    label{display:block;color:#dde0f0;font-size:13px;font-weight:720;margin:0 0 8px}.text-input,.textarea-input,.select-input{width:100%;border:1px solid var(--line);outline:0;background:#101321;color:var(--text);border-radius:15px;padding:14px 15px;font-size:16px;transition:border .18s ease,box-shadow .18s ease}.text-input:focus,.textarea-input:focus,.select-input:focus{border-color:rgba(155,132,255,.72);box-shadow:0 0 0 4px rgba(139,112,255,.12)}.textarea-input{min-height:122px;resize:vertical;line-height:1.45}.textarea-input::placeholder{color:#8d94aa;opacity:1}.field{margin:0 0 19px}
+    .upload-area{min-height:220px;border:1.5px dashed rgba(190,181,255,.38);border-radius:20px;padding:18px;display:grid;place-items:center;text-align:center;color:var(--muted);background:linear-gradient(135deg,rgba(129,106,255,.08),rgba(46,208,162,.045));cursor:pointer;overflow:hidden;transition:border-color .18s ease,background .18s ease}.upload-area:hover{border-color:rgba(202,193,255,.78);background:linear-gradient(135deg,rgba(129,106,255,.14),rgba(46,208,162,.09))}.upload-area img{width:100%;max-height:310px;object-fit:contain;border-radius:13px;display:none}.upload-copy .upload-icon{font-size:37px;margin-bottom:7px}.upload-copy strong{display:block;color:var(--text);font-size:16px}.upload-copy span{display:block;margin-top:6px;font-size:13px;line-height:1.4}.form-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+    .screen.editor-screen{display:none;min-height:calc(100dvh - 40px);flex-direction:column}.screen.editor-screen.active{display:flex}.editor-topbar{display:flex;gap:10px;align-items:center;margin-bottom:12px}.project-title-input{min-width:0;flex:1;background:transparent;border:1px solid transparent;color:var(--text);outline:0;border-radius:13px;padding:9px 11px;font-size:18px;font-weight:780;letter-spacing:-.28px}.project-title-input:focus{border-color:rgba(155,132,255,.55);background:rgba(255,255,255,.035)}.editor-actions{display:flex;gap:8px}.hide-mobile-label{display:inline}
+    .workspace{flex:1;min-height:380px;display:flex;flex-direction:column;overflow:hidden;background:#090b12;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}.canvas-context-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 13px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.026);color:var(--muted);font-size:12px}.canvas-context-left{display:flex;align-items:center;gap:8px;min-width:0}.canvas-context-left span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.canvas-viewport{position:relative;flex:1;min-height:340px;overflow:hidden;display:grid;place-items:center;padding:18px;background:linear-gradient(45deg, rgba(255,255,255,.022) 25%, transparent 25%),linear-gradient(-45deg, rgba(255,255,255,.022) 25%, transparent 25%),linear-gradient(45deg, transparent 75%, rgba(255,255,255,.022) 75%),linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.022) 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}.canvas-stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);line-height:0;transform-origin:center center;touch-action:none}#editorCanvas,#previewCanvas{display:block;touch-action:none;background:transparent}#editorCanvas{background:#fff;box-shadow:0 13px 42px rgba(0,0,0,.42)}#previewCanvas{position:absolute;left:0;top:0;pointer-events:none}
+    .editor-bottom{margin-top:14px;border-radius:21px;overflow:hidden;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}.tools-row{display:flex;gap:8px;overflow-x:auto;padding:11px 12px 9px;scrollbar-width:none}.tools-row::-webkit-scrollbar{display:none}.tool-btn{flex:0 0 auto;min-width:76px;min-height:65px;flex-direction:column;padding:9px 10px;border-radius:15px;color:#cbd0e6;background:transparent;border:1px solid transparent;font-size:11px;font-weight:700}.tool-btn .tool-symbol{display:grid;place-items:center;height:23px;font-size:22px;line-height:1}.tool-btn.active{background:rgba(140,109,255,.17);border-color:rgba(165,144,255,.62);color:#fff}
+    .controls-row{display:flex;gap:13px;align-items:center;padding:12px;border-top:1px solid var(--line);flex-wrap:wrap}.control-set{display:flex;gap:9px;align-items:center}.control-label{font-size:12px;color:var(--muted)}.swatches{display:flex;gap:8px;flex-wrap:wrap}.swatch{width:26px;height:26px;border-radius:999px;padding:0;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}.swatch.active{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.13), inset 0 0 0 1px rgba(0,0,0,.2)}.range{width:116px}.value-badge{display:inline-flex;align-items:center;justify-content:center;min-width:54px;padding:10px 10px;border-radius:12px;background:#111629;border:1px solid var(--line);font-size:13px;color:#edf0ff;font-variant-numeric:tabular-nums}.toggle-btn.active{background:rgba(140,109,255,.17);border-color:rgba(165,144,255,.62);color:#fff}.history-buttons{margin-left:auto;display:flex;gap:7px}.history-buttons .small-btn{padding:10px 11px;min-width:43px}.zoom-badge{font-variant-numeric:tabular-nums;min-width:40px;text-align:center;color:#e8e9f5;font-size:12px}.help-line{padding:0 12px 12px;color:var(--muted);font-size:12px;line-height:1.35}
+    .sticker-active{display:flex;align-items:center;gap:8px;padding:0 12px 12px}.sticker-active.hidden{display:none}.sticker-chip{display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.035);padding:8px 10px;font-size:12px;color:#edf0ff}.sticker-chip img{width:22px;height:22px;object-fit:contain;border-radius:6px;background:#fff}
+    .text-style-bar{display:none;gap:12px;align-items:center;padding:0 12px 12px;flex-wrap:wrap}.text-style-bar.active{display:flex}.text-style-bar .select-input{width:auto;min-width:150px;padding:10px 12px;border-radius:12px;font-size:13px}.textarea-input.font-live-preview{font-size:19px;line-height:1.35;transition:font-family .16s ease,font-weight .16s ease,color .16s ease}.font-preview-note{margin-top:-6px;font-size:12px;color:var(--muted)}
+    .modal-backdrop{position:fixed;inset:0;z-index:40;padding:18px;display:none;align-items:center;justify-content:center;background:rgba(4,5,10,.70);backdrop-filter:blur(8px)}.modal-backdrop.open{display:flex}.modal{width:min(520px,100%);max-height:min(88vh,780px);overflow:auto;background:#171a2b;border:1px solid var(--line);border-radius:25px;padding:22px;box-shadow:0 24px 90px rgba(0,0,0,.52)}.modal.large{width:min(760px,100%)}.modal h3{margin:0 0 7px}.modal p{color:var(--muted);line-height:1.45;margin:0 0 18px}.modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+    .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.tab-btn{padding:10px 12px;border-radius:13px;background:var(--panel2);border:1px solid var(--line);color:#dde1f6;font-size:13px}.tab-btn.active{background:rgba(140,109,255,.17);border-color:rgba(165,144,255,.62);color:#fff}
+    .sticker-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}.sticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}.sticker-card{border:1px solid var(--line);background:#111523;border-radius:18px;padding:11px;display:flex;flex-direction:column;gap:10px}.sticker-preview{height:110px;border-radius:14px;background:linear-gradient(135deg,#f3f4fa,#e7eaf5);display:grid;place-items:center;overflow:hidden}.sticker-preview img{max-width:100%;max-height:100%;object-fit:contain}.sticker-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sticker-actions{display:flex;gap:8px}.sticker-actions .small-btn{flex:1;padding:9px;font-size:12px}.sticker-empty{border:1px dashed rgba(255,255,255,.18);border-radius:18px;padding:24px;text-align:center;color:var(--muted)}
+    .hint-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.mini-note{font-size:12px;color:var(--muted)}.toolbar-note{padding:0 12px 12px;color:var(--muted);font-size:12px;line-height:1.35}
+    .modal-subgrid{display:grid;grid-template-columns:1fr;gap:14px}.modal-inline{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.modal-inline .select-input{min-width:160px;padding:10px 12px;border-radius:12px;font-size:13px}.modal-inline .range{width:150px}
+    .toast{position:fixed;z-index:60;left:50%;bottom:calc(18px + var(--safe-bottom));transform:translate(-50%,18px);opacity:0;pointer-events:none;background:#f1efff;color:#161324;box-shadow:0 10px 28px rgba(0,0,0,.3);border-radius:999px;padding:12px 16px;font-size:13px;font-weight:760;transition:opacity .2s ease,transform .2s ease}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media (max-width:820px){.projects-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-card{padding:24px}}
+    @media (max-width:580px){.app-shell{padding:14px 12px calc(16px + var(--safe-bottom))}.screen{min-height:calc(100dvh - 28px)}.brand h1{font-size:18px}.brand p{font-size:11px}.hero-card{border-radius:23px;padding:22px}.hero-card h2{font-size:31px}.hero-card .lead{font-size:14px}.projects-grid{grid-template-columns:1fr}.project-card{min-height:225px;display:grid;grid-template-columns:140px 1fr}.project-thumb-wrap{height:100%;min-height:225px}.project-card-body{display:flex;min-width:0;flex-direction:column;justify-content:center}.form-card{padding:19px;border-radius:22px}.workspace{border-radius:17px}.canvas-viewport{min-height:300px;padding:14px}.editor-bottom{border-radius:17px}.editor-topbar{gap:7px}.editor-actions .small-btn,.editor-actions .primary-btn{padding:10px}.hide-mobile-label{display:none}.project-title-input{font-size:16px;padding-left:6px}.history-buttons{margin-left:0;width:100%;justify-content:flex-end}.modal{padding:18px;border-radius:20px}.sticker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.text-style-bar .select-input,.modal-inline .select-input{min-width:135px}}
+  
+    /* v5 · experiencia móvil compacta */
+    @media (max-width: 580px) {
+      html, body { overflow-x: hidden; }
+      .app-shell { padding: 8px 8px calc(10px + var(--safe-bottom)); }
+      .screen.editor-screen { min-height: calc(100dvh - 16px); }
+      .editor-topbar { gap: 6px; margin-bottom: 8px; min-height: 44px; }
+      .back-btn { width: 42px; height: 42px; flex: 0 0 42px; }
+      .project-title-input { min-width: 0; padding: 7px 4px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .editor-actions { gap: 5px; flex: 0 0 auto; }
+      .editor-actions .small-btn,
+      .editor-actions .primary-btn { width: 42px; height: 42px; min-width: 42px; padding: 0; border-radius: 13px; }
+      .workspace { min-height: 310px; border-radius: 17px; }
+      .canvas-context-bar { min-height: 52px; padding: 8px 9px; gap: 7px; }
+      .canvas-context-left { gap: 6px; max-width: calc(100% - 112px); }
+      .canvas-context-left span:last-child { max-width: 92px; }
+      .info-pill, .status-pill { padding: 7px 9px; font-size: 11px; }
+      .canvas-viewport { min-height: 300px; padding: 8px; }
+      .editor-bottom { margin-top: 8px; border-radius: 17px; }
+      .tools-row { gap: 6px; padding: 7px 8px; scroll-snap-type: x proximity; }
+      .tool-btn { min-width: 68px; min-height: 58px; padding: 7px 6px; border-radius: 13px; font-size: 10px; scroll-snap-align: start; }
+      .tool-btn .tool-symbol { height: 20px; font-size: 20px; }
+      .controls-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 8px;
+        padding: 10px;
+        align-items: center;
+      }
+      .controls-row .control-set { gap: 7px; min-width: 0; }
+      .controls-row .control-set:nth-child(1) { grid-column: 1 / -1; }
+      .controls-row .control-set:nth-child(2) { grid-column: 1; }
+      .controls-row .control-set:nth-child(2) .range { flex: 1; min-width: 0; width: auto; }
+      .controls-row .control-set:nth-child(3) { grid-column: 2; }
+      .controls-row .control-set:nth-child(4) { display: none; }
+      .history-buttons {
+        grid-column: 3;
+        grid-row: 2;
+        margin: 0;
+        width: auto;
+        justify-content: flex-end;
+        gap: 5px;
+      }
+      .history-buttons .small-btn { width: 40px; height: 40px; min-width: 40px; padding: 0; }
+      .swatches { gap: 7px; flex-wrap: nowrap; }
+      .swatch { width: 28px; height: 28px; flex: 0 0 28px; }
+      .range { width: auto; }
+      .value-badge { min-width: 56px; padding: 9px 8px; }
+      .toggle-btn { min-width: 72px; height: 40px; padding: 0 10px; }
+      .help-line { padding: 0 10px 10px; font-size: 11.5px; line-height: 1.34; }
+      .text-style-bar { padding: 0 10px 10px; gap: 8px; }
+      .sticker-active { padding: 0 10px 10px; gap: 7px; }
+      .hide-mobile-label { display: none; }
+      .modal { width: calc(100vw - 20px); max-height: 88dvh; padding: 17px; }
+    }
+
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section id="homeScreen" class="screen active" aria-label="Mis proyectos">
+      <header class="topbar">
+        <div class="brand"><div class="brand-mark">✦</div><div><h1>MarcaPro</h1><p>Editor visual por proyectos</p></div></div>
+        <div class="header-actions"><button id="openStickersHomeBtn" class="ghost-btn"><span class="icon">🖼</span>Mis stickers</button><div class="local-pill"><span class="local-dot"></span>Modo local</div></div>
+      </header>
+      <section class="hero-card"><div class="hero-content"><p class="eyebrow">Sin capturas · sin pérdida de calidad</p><h2>Marcá, corregí y compartí <strong>cualquier imagen.</strong></h2><p class="lead">La imagen se guarda con su archivo original completo. La exportación sale a resolución real, sin bajar calidad por capturas.</p><button id="newProjectHeroBtn" class="primary-btn"><span class="icon">＋</span>Crear proyecto</button></div></section>
+      <div class="section-heading"><div><h3>Mis proyectos</h3><p>Todo queda guardado únicamente en este dispositivo.</p></div><button id="newProjectTopBtn" class="ghost-btn"><span class="icon">＋</span>Nuevo</button></div>
+      <div id="projectsGrid" class="projects-grid"></div>
+    </section>
+
+    <section id="newScreen" class="screen" aria-label="Nuevo proyecto">
+      <div class="new-layout">
+        <header class="topbar"><button id="backFromNewBtn" class="ghost-btn back-btn" aria-label="Volver">←</button><div class="brand"><div><h1>Nuevo proyecto</h1><p>Una imagen, todas sus actualizaciones.</p></div></div><div style="width:42px"></div></header>
+        <form id="newProjectForm" class="form-card"><h2>Empezá desde una imagen</h2><p>Puede ser una rifa, flyer, tarjeta, promo o cualquier diseño que quieras actualizar.</p>
+          <div class="field"><label for="projectNameInput">Nombre del proyecto</label><input id="projectNameInput" class="text-input" maxlength="80" placeholder="Ej.: Rifa del ventilador" autocomplete="off" /></div>
+          <div class="field"><label>Imagen base</label><input id="imageInput" type="file" accept="image/*" hidden /><button id="uploadArea" class="upload-area" type="button" aria-label="Elegir imagen"><div id="uploadCopy" class="upload-copy"><div class="upload-icon">▧</div><strong>Elegí una imagen desde tu galería</strong><span>La imagen original queda intacta. Las marcas se guardan aparte.</span></div><img id="uploadPreview" alt="Vista previa de la imagen elegida" /></button></div>
+          <div class="form-footer"><button id="cancelNewBtn" type="button" class="ghost-btn">Cancelar</button><button id="createProjectBtn" type="submit" class="primary-btn">Crear y editar →</button></div>
+        </form>
+      </div>
+    </section>
+
+    <section id="editorScreen" class="screen editor-screen" aria-label="Editor">
+      <header class="editor-topbar"><button id="backFromEditorBtn" class="ghost-btn back-btn" aria-label="Volver a mis proyectos">←</button><input id="editorProjectName" class="project-title-input" maxlength="80" aria-label="Nombre del proyecto" /><div class="editor-actions"><button id="openStickersEditorBtn" class="small-btn" title="Mis stickers"><span class="icon">🖼</span><span class="hide-mobile-label">Stickers</span></button><button id="shareBtn" class="small-btn" title="Compartir imagen"><span class="icon">↗</span><span class="hide-mobile-label">Compartir</span></button><button id="exportBtn" class="primary-btn" title="Exportar imagen"><span class="icon">⇩</span><span class="hide-mobile-label">Descargar</span></button></div></header>
+      <section class="workspace"><div class="canvas-context-bar"><div class="canvas-context-left"><span class="info-pill">● Original intacto</span><span id="canvasHint">Elegí una herramienta y tocá la imagen.</span></div><span id="saveStatus" class="status-pill">Guardado</span></div><div id="canvasViewport" class="canvas-viewport"><div id="canvasStage" class="canvas-stage"><canvas id="editorCanvas" aria-label="Área de edición"></canvas><canvas id="previewCanvas" aria-hidden="true"></canvas></div></div></section>
+      <section class="editor-bottom" aria-label="Herramientas de edición">
+        <div class="tools-row"><button class="tool-btn active" data-tool="x" aria-pressed="true"><span class="tool-symbol">╳</span><span>X</span></button><button class="tool-btn" data-tool="circle" aria-pressed="false"><span class="tool-symbol">◯</span><span>Círculo</span></button><button class="tool-btn" data-tool="square" aria-pressed="false"><span class="tool-symbol">▢</span><span>Cuadro</span></button><button class="tool-btn" data-tool="flower" aria-pressed="false"><span class="tool-symbol">✿</span><span>Flor</span></button><button class="tool-btn" data-tool="text" aria-pressed="false"><span class="tool-symbol">T</span><span>Texto</span></button><button class="tool-btn" data-tool="sticker" aria-pressed="false"><span class="tool-symbol">🖼</span><span>Sticker</span></button><button class="tool-btn" data-tool="eraser" aria-pressed="false"><span class="tool-symbol">⌫</span><span>Borrador</span></button><button class="tool-btn" data-tool="move" aria-pressed="false"><span class="tool-symbol">✋</span><span>Mover</span></button></div>
+        <div class="controls-row"><div class="control-set"><span class="control-label">Color</span><div id="swatches" class="swatches" aria-label="Colores"></div></div><div class="control-set"><span class="control-label">Tamaño</span><input id="sizeRange" class="range" type="range" min="8" max="96" value="26" /><span id="sizeBadge" class="value-badge">26 px</span></div><div class="control-set"><button id="fillToggleBtn" class="small-btn toggle-btn" title="Relleno">Relleno</button></div><div class="control-set"><button id="zoomOutBtn" class="small-btn" aria-label="Alejar">−</button><span id="zoomBadge" class="zoom-badge">100%</span><button id="zoomInBtn" class="small-btn" aria-label="Acercar">＋</button><button id="fitBtn" class="small-btn">Ajustar</button></div><div class="history-buttons"><button id="undoBtn" class="small-btn" title="Deshacer" aria-label="Deshacer">↶</button><button id="redoBtn" class="small-btn" title="Rehacer" aria-label="Rehacer">↷</button></div></div>
+        <div id="textStyleBar" class="text-style-bar"><div class="control-set"><span class="control-label">Tipografía</span><select id="fontFamilySelect" class="select-input"><option value="Inter, Arial, sans-serif">Inter</option><option value="Arial, Helvetica, sans-serif">Arial</option><option value="Verdana, Geneva, sans-serif">Verdana</option><option value="Trebuchet MS, Arial, sans-serif">Trebuchet</option><option value="Georgia, Times New Roman, serif">Georgia</option><option value="Courier New, monospace">Courier New</option><option value="Comic Sans MS, cursive">Comic Sans</option><option value="Segoe UI, Arial, sans-serif">Segoe UI</option><option value="Calibri, Arial, sans-serif">Calibri</option><option value="Cambria, Georgia, serif">Cambria</option><option value="Candara, Calibri, sans-serif">Candara</option><option value="Consolas, monospace">Consolas</option><option value="Constantia, Georgia, serif">Constantia</option><option value="Franklin Gothic Medium, Arial, sans-serif">Franklin Gothic</option><option value="Impact, Arial Black, sans-serif">Impact</option><option value="Lucida Console, monospace">Lucida Console</option><option value="Lucida Sans Unicode, Lucida Grande, sans-serif">Lucida Sans</option><option value="Palatino Linotype, Book Antiqua, Palatino, serif">Palatino</option><option value="Tahoma, Arial, sans-serif">Tahoma</option><option value="Times New Roman, Times, serif">Times New Roman</option><option value="Arial Black, Arial, sans-serif">Arial Black</option><option value="Bahnschrift, Arial, sans-serif">Bahnschrift</option><option value="Cooper Black, Georgia, serif">Cooper Black</option></select></div><div class="control-set"><span class="control-label">Grosor</span><select id="fontWeightSelect" class="select-input"><option value="400">Regular</option><option value="600">SemiBold</option><option value="800">Bold</option><option value="900">ExtraBold</option></select></div><span class="mini-note">En cada proyecto queda guardada la última configuración usada.</span></div>
+        <div id="stickerActiveBar" class="sticker-active hidden"><div class="sticker-chip"><img id="activeStickerPreview" alt="Sticker activo" /><span id="activeStickerName">Sticker activo</span></div><button id="changeStickerBtn" class="small-btn">Cambiar sticker</button></div>
+        <div id="toolHelp" class="help-line">X: tocá la imagen para agregar una marca. El preview del puntero cambia con el tamaño.</div>
+      </section>
+    </section>
+  </main>
+
+  <div id="deleteModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle"><div class="modal"><h3 id="deleteModalTitle">¿Eliminar este proyecto?</h3><p>Se borrará la imagen y todas sus marcas guardadas en este dispositivo. Esta acción no se puede deshacer.</p><div class="modal-actions"><button id="cancelDeleteBtn" class="ghost-btn">Cancelar</button><button id="confirmDeleteBtn" class="danger-btn">Eliminar</button></div></div></div>
+
+  <div id="textModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="textModalTitle">
+    <div class="modal">
+      <h3 id="textModalTitle">Texto libre</h3>
+      <p>Cambiá el contenido, color, tamaño, tipografía y grosor. La tipografía elegida se ve directamente en el texto mientras escribís.</p>
+      <div class="modal-subgrid">
+        <div class="field"><label for="textEditorInput">Texto</label><textarea id="textEditorInput" class="textarea-input" placeholder="Escribí acá..."></textarea></div>
+        <div class="field"><label>Color</label><div id="textModalColorSwatches" class="swatches"></div></div>
+        <div class="modal-inline"><div><label for="textModalFontFamily">Tipografía</label><select id="textModalFontFamily" class="select-input"><option value="Inter, Arial, sans-serif">Inter</option><option value="Arial, Helvetica, sans-serif">Arial</option><option value="Verdana, Geneva, sans-serif">Verdana</option><option value="Trebuchet MS, Arial, sans-serif">Trebuchet</option><option value="Georgia, Times New Roman, serif">Georgia</option><option value="Courier New, monospace">Courier New</option><option value="Comic Sans MS, cursive">Comic Sans</option><option value="Segoe UI, Arial, sans-serif">Segoe UI</option><option value="Calibri, Arial, sans-serif">Calibri</option><option value="Cambria, Georgia, serif">Cambria</option><option value="Candara, Calibri, sans-serif">Candara</option><option value="Consolas, monospace">Consolas</option><option value="Constantia, Georgia, serif">Constantia</option><option value="Franklin Gothic Medium, Arial, sans-serif">Franklin Gothic</option><option value="Impact, Arial Black, sans-serif">Impact</option><option value="Lucida Console, monospace">Lucida Console</option><option value="Lucida Sans Unicode, Lucida Grande, sans-serif">Lucida Sans</option><option value="Palatino Linotype, Book Antiqua, Palatino, serif">Palatino</option><option value="Tahoma, Arial, sans-serif">Tahoma</option><option value="Times New Roman, Times, serif">Times New Roman</option><option value="Arial Black, Arial, sans-serif">Arial Black</option><option value="Bahnschrift, Arial, sans-serif">Bahnschrift</option><option value="Cooper Black, Georgia, serif">Cooper Black</option></select></div><div><label for="textModalFontWeight">Grosor</label><select id="textModalFontWeight" class="select-input"><option value="400">Regular</option><option value="600">SemiBold</option><option value="800">Bold</option><option value="900">ExtraBold</option></select></div></div>
+        <div class="font-preview-note">Al cambiar la tipografía, el texto que estás escribiendo se ve inmediatamente con ese diseño.</div>
+        <div class="field"><label for="textModalSizeRange">Tamaño del texto</label><div class="modal-inline"><input id="textModalSizeRange" class="range" type="range" min="8" max="96" value="26" /><span id="textModalSizeBadge" class="value-badge">26 px</span></div></div>
+      </div>
+      <div class="hint-row"><span class="mini-note">Cuando guardes, estos ajustes también quedarán como última configuración del proyecto.</span></div>
+      <div class="modal-actions" style="margin-top:18px"><button id="deleteTextBtn" class="danger-btn" style="margin-right:auto;display:none">Eliminar texto</button><button id="cancelTextBtn" class="ghost-btn">Cancelar</button><button id="saveTextBtn" class="primary-btn">Guardar texto</button></div>
+    </div>
+  </div>
+
+  <div id="stickersModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="stickersModalTitle"><div class="modal large"><h3 id="stickersModalTitle">Mis stickers</h3><p>Elegí el sticker que querés usar en la imagen. Desde acá mismo también podés agregar o borrar stickers, sin entrar a otra sección.</p><div class="sticker-toolbar"><span class="mini-note">Tus stickers quedan guardados para toda la app.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="stickerInput" type="file" accept="image/*" hidden multiple /><button id="addStickerBtn" class="primary-btn"><span class="icon">＋</span>Agregar sticker</button></div></div><div class="toolbar-note">WhatsApp y WhatsApp Business no permiten que esta versión HTML local lea directamente sus stickers internos. Sí podés importar los stickers manualmente desde archivos o galería.</div><div id="chooseStickerGrid" class="sticker-grid"></div><div class="modal-actions" style="margin-top:18px"><button id="closeStickersModalBtn" class="ghost-btn">Cerrar</button></div></div></div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (() => {
+    'use strict';
+    const DB_NAME = 'MarcaProLocalDB';
+    const DB_VERSION = 4;
+    const STORE_PROJECTS = 'projects';
+    const STORE_STICKERS = 'stickers';
+    const COLORS = [
+      { name: 'Rojo', value: '#ef476f' },
+      { name: 'Verde', value: '#20c997' },
+      { name: 'Amarillo', value: '#ffd166' },
+      { name: 'Azul', value: '#3b82f6' },
+      { name: 'Violeta', value: '#9b7bff' },
+      { name: 'Blanco', value: '#ffffff' },
+      { name: 'Negro', value: '#111318' }
+    ];
+    const FONT_OPTIONS = [
+      { name:'Inter', value:'Inter, Arial, sans-serif' },
+      { name:'Arial', value:'Arial, Helvetica, sans-serif' },
+      { name:'Verdana', value:'Verdana, Geneva, sans-serif' },
+      { name:'Trebuchet', value:'Trebuchet MS, Arial, sans-serif' },
+      { name:'Georgia', value:'Georgia, Times New Roman, serif' },
+      { name:'Courier New', value:'Courier New, monospace' },
+      { name:'Comic Sans', value:'Comic Sans MS, cursive' },
+      { name:'Segoe UI', value:'Segoe UI, Arial, sans-serif' },
+      { name:'Calibri', value:'Calibri, Arial, sans-serif' },
+      { name:'Cambria', value:'Cambria, Georgia, serif' },
+      { name:'Candara', value:'Candara, Calibri, sans-serif' },
+      { name:'Consolas', value:'Consolas, monospace' },
+      { name:'Constantia', value:'Constantia, Georgia, serif' },
+      { name:'Franklin Gothic', value:'Franklin Gothic Medium, Arial, sans-serif' },
+      { name:'Impact', value:'Impact, Arial Black, sans-serif' },
+      { name:'Lucida Console', value:'Lucida Console, monospace' },
+      { name:'Lucida Sans', value:'Lucida Sans Unicode, Lucida Grande, sans-serif' },
+      { name:'Palatino', value:'Palatino Linotype, Book Antiqua, Palatino, serif' },
+      { name:'Tahoma', value:'Tahoma, Arial, sans-serif' },
+      { name:'Times New Roman', value:'Times New Roman, Times, serif' },
+      { name:'Arial Black', value:'Arial Black, Arial, sans-serif' },
+      { name:'Bahnschrift', value:'Bahnschrift, Arial, sans-serif' },
+      { name:'Cooper Black', value:'Cooper Black, Georgia, serif' }
+    ];
+    const DEFAULT_SETTINGS = { tool:'x', color:COLORS[0].value, displaySize:26, fillMode:false, activeFontFamily:'Inter, Arial, sans-serif', activeFontWeight:'800', activeStickerId:null };
+    const TOOL_HELP = {
+      x:'X: tocá la imagen para agregar una marca. El preview del puntero cambia con el tamaño.',
+      circle:'Círculo: podés usarlo vacío o con relleno sólido del mismo color.',
+      square:'Cuadro: también puede ir vacío o relleno sólido.',
+      flower:'Flor: ahora se dibuja con forma real de flor.',
+      text:'Texto: tocá para crear texto libre. Si tocás un texto existente, se abre el editor completo para cambiar texto, color, tamaño, tipografía y grosor.',
+      sticker:'Sticker: elegí uno de “Mis stickers” y tocá la imagen para colocarlo.',
+      eraser:'Borrador selectivo: tocá una marca para eliminar solo esa edición.',
+      move:'Mover: arrastrá la imagen para recorrerla o tocá una marca, sticker o texto para moverlo.'
+    };
+
+    const $ = (s) => document.querySelector(s); const $$ = (s) => [...document.querySelectorAll(s)];
+    const screens = { home:$('#homeScreen'), new:$('#newScreen'), editor:$('#editorScreen') };
+    const canvas = $('#editorCanvas'); const ctx = canvas.getContext('2d');
+    const previewCanvas = $('#previewCanvas'); const pctx = previewCanvas.getContext('2d');
+    const canvasViewport = $('#canvasViewport'); const canvasStage = $('#canvasStage');
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+    const state = {
+      db:null, project:null, image:null, pickedImageBlob:null, pickedPreviewUrl:null,
+      tool:'x', color:COLORS[0].value, displaySize:26, fillMode:false,
+      baseScale:1, zoom:1, panX:0, panY:0, undoStack:[], redoStack:[], selectedProjectIdForDelete:null,
+      saveTimer:null, toastTimer:null, stickers:[], activeStickerId:null, assetCache:new Map(), pointerSession:null,
+      textDraftPoint:null, textEditMarkId:null, activeFontFamily:DEFAULT_SETTINGS.activeFontFamily, activeFontWeight:DEFAULT_SETTINGS.activeFontWeight, previewPoint:null,
+      activePointers:new Map(), pinchSession:null, touchTap:null
+    };
+
+    function uid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9); }
+    function fileSafeName(name){ return String(name||'archivo').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'archivo'; }
+    function toast(message){ const t=$('#toast'); t.textContent=message; t.classList.add('show'); clearTimeout(state.toastTimer); state.toastTimer=setTimeout(()=>t.classList.remove('show'),2600); }
+    function showScreen(name){ Object.entries(screens).forEach(([k,el])=>el.classList.toggle('active',k===name)); window.scrollTo({top:0,behavior:'instant'}); }
+    function escapeHTML(v){ return String(v||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+    function cloneMarks(m){ return JSON.parse(JSON.stringify(m||[])); }
+    function safeDate(v){ try { return new Intl.DateTimeFormat('es-AR',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(v)); } catch { return ''; } }
+    function plural(c,a,b){ return c===1?a:b; }
+    function ensureProjectSettings(project){ project.toolSettings = { ...DEFAULT_SETTINGS, ...(project.toolSettings||{}) }; return project.toolSettings; }
+    function syncStateToProjectSettings(){ if(!state.project) return; state.project.toolSettings = { ...ensureProjectSettings(state.project), tool:state.tool, color:state.color, displaySize:state.displaySize, fillMode:state.fillMode, activeFontFamily:state.activeFontFamily, activeFontWeight:state.activeFontWeight, activeStickerId:state.activeStickerId||null }; }
+    function applyProjectSettings(project){ const s=ensureProjectSettings(project); state.tool=s.tool; state.color=s.color; state.displaySize=s.displaySize; state.fillMode=!!s.fillMode; state.activeFontFamily=s.activeFontFamily; state.activeFontWeight=s.activeFontWeight; if(s.activeStickerId) state.activeStickerId=s.activeStickerId; }
+
+    function openDB(){ return new Promise((resolve,reject)=>{ const request=indexedDB.open(DB_NAME,DB_VERSION); request.onupgradeneeded=()=>{ const db=request.result; if(!db.objectStoreNames.contains(STORE_PROJECTS)) db.createObjectStore(STORE_PROJECTS,{keyPath:'id'}); if(!db.objectStoreNames.contains(STORE_STICKERS)) db.createObjectStore(STORE_STICKERS,{keyPath:'id'}); }; request.onsuccess=()=>resolve(request.result); request.onerror=()=>reject(request.error); }); }
+    function dbGetAll(store){ return new Promise((resolve,reject)=>{ const tx=state.db.transaction(store,'readonly'); const request=tx.objectStore(store).getAll(); request.onsuccess=()=>resolve(request.result||[]); request.onerror=()=>reject(request.error); }); }
+    function dbGet(store,id){ return new Promise((resolve,reject)=>{ const tx=state.db.transaction(store,'readonly'); const request=tx.objectStore(store).get(id); request.onsuccess=()=>resolve(request.result||null); request.onerror=()=>reject(request.error); }); }
+    function dbPut(store,value){ return new Promise((resolve,reject)=>{ const tx=state.db.transaction(store,'readwrite'); tx.objectStore(store).put(value); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); }); }
+    function dbDelete(store,id){ return new Promise((resolve,reject)=>{ const tx=state.db.transaction(store,'readwrite'); tx.objectStore(store).delete(id); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); }); }
+
+    function imageFromBlob(blob){ return new Promise((resolve,reject)=>{ const image=new Image(); const url=URL.createObjectURL(blob); image.onload=()=>{ URL.revokeObjectURL(url); resolve(image); }; image.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); }; image.src=url; }); }
+    function ensureAssetLoaded(dataUrl){ if(!dataUrl) return Promise.resolve(null); const cached=state.assetCache.get(dataUrl); if(cached&&cached.complete) return Promise.resolve(cached); return new Promise((resolve,reject)=>{ const img=cached||new Image(); img.onload=()=>{ state.assetCache.set(dataUrl,img); resolve(img); }; img.onerror=reject; if(!cached){ img.src=dataUrl; state.assetCache.set(dataUrl,img); } }); }
+    async function preloadProjectAssets(project){ const stickerUrls=(project.marks||[]).filter(m=>m.type==='sticker'&&m.stickerDataUrl).map(m=>m.stickerDataUrl); const unique=[...new Set(stickerUrls)]; await Promise.all(unique.map(url=>ensureAssetLoaded(url).catch(()=>null))); }
+
+    function resetNewProjectForm(){ $('#newProjectForm').reset(); state.pickedImageBlob=null; if(state.pickedPreviewUrl) URL.revokeObjectURL(state.pickedPreviewUrl); state.pickedPreviewUrl=null; $('#uploadPreview').style.display='none'; $('#uploadPreview').removeAttribute('src'); $('#uploadCopy').style.display='block'; }
+    function updateSizeBadges(){ $('#sizeBadge').textContent=`${state.displaySize} px`; $('#textModalSizeBadge').textContent=`${state.displaySize} px`; $('#sizeRange').value=String(state.displaySize); $('#textModalSizeRange').value=String(state.displaySize); }
+    function populateFontSelects(){
+      const selects=[$('#fontFamilySelect'),$('#textModalFontFamily')].filter(Boolean);
+      selects.forEach(select=>{
+        const before=select.value;
+        select.innerHTML='';
+        FONT_OPTIONS.forEach(font=>{
+          const option=document.createElement('option');
+          option.value=font.value;
+          option.textContent=font.name;
+          option.style.fontFamily=font.value;
+          select.appendChild(option);
+        });
+        const wanted=FONT_OPTIONS.some(font=>font.value===state.activeFontFamily) ? state.activeFontFamily : (before || FONT_OPTIONS[0].value);
+        select.value=wanted;
+        select.style.fontFamily=wanted;
+        select.style.fontWeight=state.activeFontWeight;
+      });
+    }
+    function applyTextEditorLiveStyle(){
+      const input=$('#textEditorInput');
+      if(!input) return;
+      const isBlackText = String(state.color).toLowerCase() === '#111318';
+      input.classList.add('font-live-preview');
+      input.style.fontFamily=state.activeFontFamily;
+      input.style.fontWeight=state.activeFontWeight;
+      input.style.color=state.color;
+      input.style.backgroundColor=isBlackText ? '#ffffff' : '#101321';
+      input.style.caretColor=isBlackText ? '#111318' : state.color;
+      input.style.borderColor=isBlackText ? 'rgba(17,19,24,.36)' : '';
+    }
+    function updateTextStyleBar(){
+      const active=state.tool==='text';
+      $('#textStyleBar').classList.toggle('active',active);
+      populateFontSelects();
+      $('#fontFamilySelect').value=state.activeFontFamily;
+      $('#fontFamilySelect').style.fontFamily=state.activeFontFamily;
+      $('#fontFamilySelect').style.fontWeight=state.activeFontWeight;
+      $('#fontWeightSelect').value=state.activeFontWeight;
+      $('#textModalFontFamily').value=state.activeFontFamily;
+      $('#textModalFontFamily').style.fontFamily=state.activeFontFamily;
+      $('#textModalFontFamily').style.fontWeight=state.activeFontWeight;
+      $('#textModalFontWeight').value=state.activeFontWeight;
+      applyTextEditorLiveStyle();
+    }
+    function formatCount(project){ const n=(project.marks||[]).length; return `${n} ${plural(n,'marca','marcas')}`; }
+
+    async function renderHome(){ const grid=$('#projectsGrid'); grid.innerHTML=''; let projects=[]; try{ projects=await dbGetAll(STORE_PROJECTS);}catch(err){console.error(err);toast('No se pudieron leer los proyectos locales.');} projects.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)); if(!projects.length){ grid.innerHTML=`<div class="empty-card"><div><div class="empty-icon">✦</div><h3>Tu primer proyecto empieza acá</h3><p>Elegí una imagen, agregá marcas, textos o stickers y descargala cada vez que necesites actualizarla.</p><button id="emptyCreateBtn" class="primary-btn" style="margin-top:16px">Crear primer proyecto</button></div></div>`; $('#emptyCreateBtn').addEventListener('click',openNewProject); return; }
+      projects.forEach(project=>{ const card=document.createElement('article'); card.className='project-card'; card.tabIndex=0; card.setAttribute('role','button'); const imageUrl=URL.createObjectURL(project.imageBlob); card.innerHTML=`<div class="project-thumb-wrap"><img class="project-thumb" src="${imageUrl}" alt="Miniatura de ${escapeHTML(project.name)}"></div><div class="project-card-body"><div class="project-card-title">${escapeHTML(project.name)}</div><div class="project-card-meta">${formatCount(project)} · Actualizado ${safeDate(project.updatedAt)}</div><div class="card-actions"><button class="small-btn open-project-btn">Abrir</button><button class="small-btn delete-project-btn" aria-label="Eliminar proyecto">🗑</button></div></div>`; const open=()=>openProject(project.id); card.addEventListener('click',e=>{ if(e.target.closest('.delete-project-btn')||e.target.closest('.open-project-btn')) return; open(); }); card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } }); card.querySelector('.open-project-btn').addEventListener('click',open); card.querySelector('.delete-project-btn').addEventListener('click',e=>{ e.stopPropagation(); askDelete(project.id);}); card.querySelector('img').addEventListener('load',()=>URL.revokeObjectURL(imageUrl),{once:true}); grid.appendChild(card); }); }
+
+    async function loadStickers(){ try{ state.stickers=await dbGetAll(STORE_STICKERS); state.stickers.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)); if(state.stickers.length&&!state.activeStickerId) state.activeStickerId=state.stickers[0].id; else if(!state.stickers.length) state.activeStickerId=null; else if(state.activeStickerId&&!state.stickers.some(s=>s.id===state.activeStickerId)) state.activeStickerId=state.stickers[0]?.id||null; renderStickerModalContent(); updateActiveStickerBar(); }catch(err){ console.error(err); toast('No se pudieron leer los stickers.'); } }
+
+    function openNewProject(){ resetNewProjectForm(); showScreen('new'); setTimeout(()=>$('#projectNameInput').focus(),120); }
+    function chooseImage(){ $('#imageInput').click(); }
+    function handlePickedImage(event){ const file=event.target.files&&event.target.files[0]; if(!file) return; if(!file.type.startsWith('image/')){ toast('Elegí un archivo de imagen válido.'); return; } if(state.pickedPreviewUrl) URL.revokeObjectURL(state.pickedPreviewUrl); state.pickedImageBlob=file; state.pickedPreviewUrl=URL.createObjectURL(file); const preview=$('#uploadPreview'); preview.src=state.pickedPreviewUrl; preview.style.display='block'; $('#uploadCopy').style.display='none'; }
+
+    async function createProject(event){ event.preventDefault(); const name=$('#projectNameInput').value.trim(); if(!name){ toast('Poné un nombre para identificar este proyecto.'); $('#projectNameInput').focus(); return; } if(!state.pickedImageBlob){ toast('Elegí la imagen que querés editar.'); return; } const now=new Date().toISOString(); const project={ id:uid(), name, imageBlob:state.pickedImageBlob, marks:[], toolSettings:{...DEFAULT_SETTINGS}, createdAt:now, updatedAt:now }; try{ await dbPut(STORE_PROJECTS,project); await openProject(project.id); toast('Proyecto creado. La imagen original está protegida y conserva su calidad original.'); }catch(err){ console.error(err); toast('No se pudo guardar el proyecto en el dispositivo.'); } }
+
+    async function openProject(id){ try{ const project=await dbGet(STORE_PROJECTS,id); if(!project){ toast('No se encontró ese proyecto.'); await renderHome(); return; } state.project=project; ensureProjectSettings(project); state.image=await imageFromBlob(project.imageBlob); await preloadProjectAssets(project); applyProjectSettings(project); state.zoom=1; state.panX=0; state.panY=0; state.previewPoint=null; state.undoStack=[]; state.redoStack=[]; state.pointerSession=null; $('#editorProjectName').value=project.name; buildColorSwatches(); setTool(state.tool,false); updateFillButton(); updateSizeBadges(); updateTextStyleBar(); showScreen('editor'); requestAnimationFrame(()=>{ fitCanvas(); renderCanvas(); }); }catch(err){ console.error(err); toast('No se pudo abrir este proyecto.'); } }
+
+    function buildColorSwatches(){
+      const paintTargets=[{id:'#swatches', kind:'main'},{id:'#textModalColorSwatches',kind:'modal'}];
+      paintTargets.forEach(t=>{ const holder=$(t.id); if(!holder) return; holder.innerHTML=''; COLORS.forEach(item=>{ const button=document.createElement('button'); button.className='swatch'+(item.value===state.color?' active':''); button.style.background=item.value; button.setAttribute('aria-label',item.name); button.title=item.name; button.addEventListener('click',()=>{ state.color=item.value; buildColorSwatches(); applyTextEditorLiveStyle(); syncStateToProjectSettings(); queueSave('Configuración guardada'); drawPreview(); }); holder.appendChild(button); }); });
+    }
+
+    function updateFillButton(){ $('#fillToggleBtn').classList.toggle('active',state.fillMode); }
+    function updateActiveStickerBar(){ const bar=$('#stickerActiveBar'); const sticker=state.stickers.find(i=>i.id===state.activeStickerId); if(sticker&&state.tool==='sticker'){ $('#activeStickerPreview').src=sticker.dataUrl; $('#activeStickerName').textContent=sticker.name; bar.classList.remove('hidden'); } else bar.classList.add('hidden'); }
+
+    function setTool(tool, persist=true){ state.tool=tool; $$('.tool-btn').forEach(button=>{ const active=button.dataset.tool===tool; button.classList.toggle('active',active); button.setAttribute('aria-pressed',String(active)); }); $('#toolHelp').textContent=TOOL_HELP[tool]||''; $('#canvasHint').textContent = tool==='eraser' ? 'Tocá la marca que querés borrar.' : tool==='move' ? 'Arrastrá la imagen o una marca para moverla.' : tool==='sticker' ? (state.activeStickerId ? 'Tocá la imagen para colocar el sticker activo.' : 'Primero elegí un sticker.') : 'Elegí una herramienta y tocá la imagen.'; canvas.style.cursor = tool==='eraser' ? 'not-allowed' : tool==='move' ? 'grab' : 'crosshair'; updateActiveStickerBar(); updateTextStyleBar(); if(persist){ syncStateToProjectSettings(); queueSave('Configuración guardada'); } drawPreview(); }
+
+    function fitCanvas(){ if(!state.image) return; const availableW=Math.max(220,canvasViewport.clientWidth-38); const availableH=Math.max(260,canvasViewport.clientHeight-38); state.baseScale=Math.min(availableW/state.image.naturalWidth, availableH/state.image.naturalHeight, 1); state.zoom=1; state.panX=0; state.panY=0; renderCanvas(); }
+    function applyStageTransform(){ canvasStage.style.left='50%'; canvasStage.style.top='50%'; canvasStage.style.transform=`translate(calc(-50% + ${state.panX}px), calc(-50% + ${state.panY}px))`; }
+    function resizeCanvases(width,height){ canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr); previewCanvas.width=Math.round(width*dpr); previewCanvas.height=Math.round(height*dpr); canvas.style.width=`${width}px`; canvas.style.height=`${height}px`; previewCanvas.style.width=`${width}px`; previewCanvas.style.height=`${height}px`; canvasStage.style.width=`${width}px`; canvasStage.style.height=`${height}px`; }
+
+    function renderCanvas(){ if(!state.image||!state.project) return; const displayScale=state.baseScale*state.zoom; const width=Math.max(1,Math.round(state.image.naturalWidth*displayScale)); const height=Math.max(1,Math.round(state.image.naturalHeight*displayScale)); resizeCanvases(width,height); applyStageTransform(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,width,height); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(state.image,0,0,width,height); (state.project.marks||[]).forEach(mark=>drawMark(ctx,mark,displayScale)); $('#zoomBadge').textContent=`${Math.round(state.zoom*100)}%`; updateHistoryButtons(); drawPreview(); }
+    function getDisplayScale(){ return state.baseScale*state.zoom; } function getMarkOriginalSize(){ return Math.max(6,state.displaySize/getDisplayScale()); }
+
+    function drawMultilineText(targetCtx,text,x,y,fontSize,color,fontFamily,fontWeight){ const lines=String(text||'').split('\n'); const lineHeight=fontSize*1.12; const totalHeight=lineHeight*lines.length; const startY=y-totalHeight/2+lineHeight/2; targetCtx.font=`${fontWeight||'800'} ${fontSize}px ${fontFamily||'Inter, Arial, sans-serif'}`; targetCtx.textAlign='center'; targetCtx.textBaseline='middle'; targetCtx.lineWidth=Math.max(2,fontSize*.14); targetCtx.strokeStyle='rgba(0,0,0,.52)'; targetCtx.fillStyle=color; lines.forEach((line,index)=>{ const yy=startY+index*lineHeight; targetCtx.strokeText(line,x,yy); targetCtx.fillText(line,x,yy); }); }
+    function getStickerDimensions(mark,img){ const baseWidth=Math.max(10,mark.size); const ratio=img&&img.naturalWidth&&img.naturalHeight ? (img.naturalHeight/img.naturalWidth) : 1; return { width:baseWidth, height:baseWidth*ratio }; }
+    function drawFlower(targetCtx,x,y,size,color){ const petals=6, orbit=size*.33, petalR=size*.23; targetCtx.fillStyle=color; for(let i=0;i<petals;i++){ const a=(Math.PI*2*i)/petals - Math.PI/2; const px=x+Math.cos(a)*orbit; const py=y+Math.sin(a)*orbit; targetCtx.beginPath(); targetCtx.arc(px,py,petalR,0,Math.PI*2); targetCtx.fill(); } targetCtx.beginPath(); targetCtx.fillStyle='#ffd166'; targetCtx.arc(x,y,size*.17,0,Math.PI*2); targetCtx.fill(); }
+
+    function drawShape(targetCtx,mark,scale){ const x=mark.x*scale, y=mark.y*scale, size=Math.max(3,mark.size*scale); targetCtx.save(); targetCtx.lineCap='round'; targetCtx.lineJoin='round'; if(mark.type==='x'){ targetCtx.strokeStyle=mark.color; targetCtx.lineWidth=Math.max(2,size*.17); targetCtx.beginPath(); targetCtx.moveTo(x-size*.48,y-size*.48); targetCtx.lineTo(x+size*.48,y+size*.48); targetCtx.moveTo(x+size*.48,y-size*.48); targetCtx.lineTo(x-size*.48,y+size*.48); targetCtx.stroke(); } else if(mark.type==='circle'){ targetCtx.lineWidth=Math.max(2,size*.14); targetCtx.beginPath(); targetCtx.arc(x,y,size*.50,0,Math.PI*2); if(mark.fill){ targetCtx.fillStyle=mark.color; targetCtx.fill(); } targetCtx.strokeStyle=mark.color; targetCtx.stroke(); } else if(mark.type==='square'){ const half=size*.50; targetCtx.lineWidth=Math.max(2,size*.14); if(mark.fill){ targetCtx.fillStyle=mark.color; targetCtx.fillRect(x-half,y-half,half*2,half*2); } targetCtx.strokeStyle=mark.color; targetCtx.strokeRect(x-half,y-half,half*2,half*2); } else if(mark.type==='flower'){ drawFlower(targetCtx,x,y,size,mark.color); } else if(mark.type==='text'){ drawMultilineText(targetCtx,mark.text||'',x,y,Math.max(12,size*.62),mark.color,mark.fontFamily,mark.fontWeight); } else if(mark.type==='sticker'){ const img=state.assetCache.get(mark.stickerDataUrl); if(img&&img.complete){ const dims=getStickerDimensions({size:Math.max(10,mark.size)},img); const width=dims.width*scale, height=dims.height*scale; targetCtx.drawImage(img,x-width/2,y-height/2,width,height); } else if(mark.stickerDataUrl) ensureAssetLoaded(mark.stickerDataUrl).then(()=>renderCanvas()).catch(()=>null); } targetCtx.restore(); }
+    function drawMark(targetCtx,mark,scale){ drawShape(targetCtx,mark,scale); }
+
+    function drawPreview(){ if(!state.image) return; const width=parseFloat(previewCanvas.style.width||0)||previewCanvas.clientWidth; const height=parseFloat(previewCanvas.style.height||0)||previewCanvas.clientHeight; pctx.setTransform(dpr,0,0,dpr,0,0); pctx.clearRect(0,0,width,height); if(!state.previewPoint) return; if(state.tool==='eraser'||state.tool==='move') return; const mock={ type:state.tool, x:state.previewPoint.x, y:state.previewPoint.y, size:getMarkOriginalSize(), color:state.color, fill:state.fillMode, text:'T', fontFamily:state.activeFontFamily, fontWeight:state.activeFontWeight }; if(state.tool==='sticker'){ const sticker=state.stickers.find(s=>s.id===state.activeStickerId); if(!sticker) return; mock.size=Math.max(20,getMarkOriginalSize()*2.1); mock.stickerDataUrl=sticker.dataUrl; } pctx.save(); pctx.globalAlpha=.85; drawShape(pctx,mock,getDisplayScale()); pctx.restore(); }
+
+    function getPointerCoordinates(event){ const rect=canvas.getBoundingClientRect(); const x=(event.clientX-rect.left)*state.image.naturalWidth/rect.width; const y=(event.clientY-rect.top)*state.image.naturalHeight/rect.height; return { x:Math.min(Math.max(x,0),state.image.naturalWidth), y:Math.min(Math.max(y,0),state.image.naturalHeight) }; }
+    function getTextBounds(mark){ const fontSize=Math.max(12,mark.size*.62); const lines=String(mark.text||'').split('\n'); const maxChars=Math.max(...lines.map(line=>line.length),1); const width=fontSize*Math.max(1.8,maxChars*.70)+20; const height=fontSize*1.22*lines.length+16; return {width,height}; }
+    function hitTestMark(point,reverse=true){ const marks=state.project?.marks||[]; const indexes=reverse ? [...marks.keys()].reverse() : [...marks.keys()]; for(const index of indexes){ const mark=marks[index]; if(mark.type==='text'){ const b=getTextBounds(mark); if(point.x>=mark.x-b.width/2 && point.x<=mark.x+b.width/2 && point.y>=mark.y-b.height/2 && point.y<=mark.y+b.height/2) return index; } else if(mark.type==='sticker'){ const img=state.assetCache.get(mark.stickerDataUrl); const d=getStickerDimensions(mark,img); if(point.x>=mark.x-d.width/2 && point.x<=mark.x+d.width/2 && point.y>=mark.y-d.height/2 && point.y<=mark.y+d.height/2) return index; } else { const dx=point.x-mark.x, dy=point.y-mark.y, radius=Math.max(mark.size*.95,14); if(Math.sqrt(dx*dx+dy*dy)<=radius) return index; } } return -1; }
+
+    function pushHistory(){ state.undoStack.push(cloneMarks(state.project.marks)); if(state.undoStack.length>80) state.undoStack.shift(); state.redoStack=[]; updateHistoryButtons(); }
+    function updateHistoryButtons(){ $('#undoBtn').disabled=!state.undoStack.length; $('#redoBtn').disabled=!state.redoStack.length; }
+    function queueSave(message='Guardado'){ $('#saveStatus').textContent='Guardando…'; clearTimeout(state.saveTimer); state.saveTimer=setTimeout(async()=>{ if(!state.project) return; syncStateToProjectSettings(); state.project.updatedAt=new Date().toISOString(); try{ await dbPut(STORE_PROJECTS,state.project); $('#saveStatus').textContent=message; }catch(err){ console.error(err); $('#saveStatus').textContent='Error al guardar'; } },220); }
+    function addMark(mark){ pushHistory(); state.project.marks.push(mark); renderCanvas(); queueSave('Guardado'); }
+    function createBasicMark(type,point){ return { id:uid(), type, x:point.x, y:point.y, size:getMarkOriginalSize(), color:state.color, fill:!!state.fillMode }; }
+
+    function openTextModal(point,existingMark){ state.textDraftPoint=point; state.textEditMarkId=existingMark ? existingMark.id : null; $('#textEditorInput').value=existingMark?.text||''; $('#deleteTextBtn').style.display=existingMark ? 'inline-flex' : 'none'; if(existingMark){ state.color=existingMark.color||state.color; state.activeFontFamily=existingMark.fontFamily||state.activeFontFamily; state.activeFontWeight=existingMark.fontWeight||state.activeFontWeight; state.displaySize=Math.round((existingMark.size||getMarkOriginalSize())*getDisplayScale()); } buildColorSwatches(); updateSizeBadges(); updateTextStyleBar(); applyTextEditorLiveStyle(); $('#textModalBackdrop').classList.add('open'); setTimeout(()=>$('#textEditorInput').focus(),60); }
+    function closeTextModal(){ $('#textModalBackdrop').classList.remove('open'); state.textDraftPoint=null; state.textEditMarkId=null; }
+    function saveTextModal(){ const typed=$('#textEditorInput').value.replace(/\r/g,''); if(!typed.trim()){ toast('Escribí algo o cancelá.'); return; } if(state.textEditMarkId){ const mark=state.project.marks.find(i=>i.id===state.textEditMarkId); if(!mark){ closeTextModal(); return; } pushHistory(); mark.text=typed; mark.color=state.color; mark.size=getMarkOriginalSize(); mark.fontFamily=state.activeFontFamily; mark.fontWeight=state.activeFontWeight; } else { pushHistory(); state.project.marks.push({ id:uid(), type:'text', x:state.textDraftPoint.x, y:state.textDraftPoint.y, size:getMarkOriginalSize(), color:state.color, text:typed, fontFamily:state.activeFontFamily, fontWeight:state.activeFontWeight }); } syncStateToProjectSettings(); buildColorSwatches(); updateSizeBadges(); updateTextStyleBar(); renderCanvas(); queueSave('Texto guardado'); closeTextModal(); }
+    function deleteTextModalMark(){ if(!state.textEditMarkId) return; const index=state.project.marks.findIndex(i=>i.id===state.textEditMarkId); if(index===-1) return; pushHistory(); state.project.marks.splice(index,1); renderCanvas(); queueSave('Guardado'); closeTextModal(); toast('Texto eliminado.'); }
+    function eraseMarkAt(point){ const index=hitTestMark(point,true); if(index===-1){ toast('Tocá más cerca de la marca que querés borrar.'); return; } pushHistory(); state.project.marks.splice(index,1); renderCanvas(); queueSave('Guardado'); toast('Marca eliminada.'); }
+    function setZoom(nextZoom){ const clamped=Math.min(4,Math.max(.45,nextZoom)); if(Math.abs(clamped-state.zoom)<.001) return; state.zoom=clamped; renderCanvas(); }
+    function undo(){ if(!state.undoStack.length) return; state.redoStack.push(cloneMarks(state.project.marks)); state.project.marks=state.undoStack.pop(); renderCanvas(); queueSave('Guardado'); }
+    function redo(){ if(!state.redoStack.length) return; state.undoStack.push(cloneMarks(state.project.marks)); state.project.marks=state.redoStack.pop(); renderCanvas(); queueSave('Guardado'); }
+
+    async function drawExportCanvas(){ const exportCanvas=document.createElement('canvas'); exportCanvas.width=state.image.naturalWidth; exportCanvas.height=state.image.naturalHeight; const exportCtx=exportCanvas.getContext('2d'); exportCtx.imageSmoothingEnabled=true; exportCtx.imageSmoothingQuality='high'; exportCtx.drawImage(state.image,0,0); await preloadProjectAssets(state.project); (state.project.marks||[]).forEach(mark=>drawMark(exportCtx,mark,1)); return exportCanvas; }
+    function canvasToBlob(element,type='image/png',quality){ return new Promise(resolve=>element.toBlob(resolve,type,quality)); }
+    async function exportImage(download=true){ if(!state.project||!state.image) return null; $('#exportBtn').disabled=true; $('#exportBtn').innerHTML='<span class="icon">…</span><span class="hide-mobile-label">Generando</span>'; try{ const exportCanvas=await drawExportCanvas(); const blob=await canvasToBlob(exportCanvas,'image/png'); if(!blob) throw new Error('No se pudo generar la imagen.'); if(download){ const url=URL.createObjectURL(blob); const anchor=document.createElement('a'); anchor.href=url; anchor.download=`${fileSafeName(state.project.name)}-actualizado.png`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(()=>URL.revokeObjectURL(url),1200); toast('Imagen descargada en alta calidad.'); } return blob; } catch(err){ console.error(err); toast('No se pudo exportar la imagen.'); return null; } finally{ $('#exportBtn').disabled=false; $('#exportBtn').innerHTML='<span class="icon">⇩</span><span class="hide-mobile-label">Descargar</span>'; } }
+    async function shareImage(){ if(!state.project) return; const blob=await exportImage(false); if(!blob) return; const file=new File([blob],`${fileSafeName(state.project.name)}-actualizado.png`,{type:'image/png'}); try{ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){ await navigator.share({title:state.project.name,text:'Imagen actualizada con MarcaPro',files:[file]}); } else { const url=URL.createObjectURL(blob); const anchor=document.createElement('a'); anchor.href=url; anchor.download=file.name; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(()=>URL.revokeObjectURL(url),1200); toast('Tu navegador no permite compartir directo. La imagen se descargó.'); } } catch(err){ if(err&&err.name!=='AbortError'){ console.error(err); toast('No se pudo abrir el menú para compartir.'); } } }
+
+    async function saveProjectName(){ if(!state.project) return; const typed=$('#editorProjectName').value.trim(); const nextName=typed||'Proyecto sin nombre'; if(nextName===state.project.name) return; state.project.name=nextName; $('#editorProjectName').value=nextName; queueSave('Nombre guardado'); }
+    function askDelete(id){ state.selectedProjectIdForDelete=id; $('#deleteModalBackdrop').classList.add('open'); }
+    async function confirmDelete(){ const id=state.selectedProjectIdForDelete; if(!id) return; try{ await dbDelete(STORE_PROJECTS,id); toast('Proyecto eliminado.'); $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; await renderHome(); } catch(err){ console.error(err); toast('No se pudo eliminar el proyecto.'); } }
+
+    async function openStickersModal(){ await loadStickers(); $('#stickersModalBackdrop').classList.add('open'); }
+    function closeStickersModal(){ $('#stickersModalBackdrop').classList.remove('open'); }
+    function renderStickerModalContent(){ const chooseGrid=$('#chooseStickerGrid'); chooseGrid.innerHTML=''; if(!state.stickers.length){ chooseGrid.innerHTML=`<div class="sticker-empty"><strong>No tenés stickers todavía.</strong><br><span class="mini-note">Agregá uno desde el botón “Agregar sticker”.</span></div>`; return; } state.stickers.forEach(sticker=>{ const chooseCard=document.createElement('div'); chooseCard.className='sticker-card'; chooseCard.innerHTML=`<div class="sticker-preview"><img src="${sticker.dataUrl}" alt="${escapeHTML(sticker.name)}"></div><div class="sticker-name">${escapeHTML(sticker.name)}</div><div class="sticker-actions"><button class="small-btn select-sticker-btn">${state.activeStickerId===sticker.id?'Seleccionado':'Usar'}</button><button class="small-btn delete-sticker-btn">🗑</button></div>`; chooseCard.querySelector('.select-sticker-btn').addEventListener('click',()=>{ state.activeStickerId=sticker.id; syncStateToProjectSettings(); renderStickerModalContent(); updateActiveStickerBar(); if(state.tool!=='sticker') setTool('sticker'); else queueSave('Configuración guardada'); closeStickersModal(); toast('Sticker seleccionado.'); }); chooseCard.querySelector('.delete-sticker-btn').addEventListener('click', async()=>{ if(!confirm(`¿Eliminar el sticker "${sticker.name}"?`)) return; try{ await dbDelete(STORE_STICKERS,sticker.id); if(state.activeStickerId===sticker.id) state.activeStickerId=null; toast('Sticker eliminado.'); await loadStickers(); } catch(err){ console.error(err); toast('No se pudo eliminar el sticker.'); } }); chooseGrid.appendChild(chooseCard); }); }
+    function fileToDataUrl(file){ return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=reject; reader.readAsDataURL(file); }); }
+    async function addStickersFromFiles(event){ const files=[...(event.target.files||[])]; if(!files.length) return; try{ for(const file of files){ if(!file.type.startsWith('image/')) continue; const dataUrl=await fileToDataUrl(file); const sticker={ id:uid(), name:file.name.replace(/\.[^.]+$/,'')||'Sticker', dataUrl, createdAt:new Date().toISOString() }; await dbPut(STORE_STICKERS,sticker); } toast('Sticker(s) guardado(s) para toda la app.'); await loadStickers(); if(!state.activeStickerId&&state.stickers.length) state.activeStickerId=state.stickers[0].id; renderStickerModalContent(); } catch(err){ console.error(err); toast('No se pudieron guardar los stickers.'); } finally{ $('#stickerInput').value=''; } }
+    function addStickerMark(point){ const sticker=state.stickers.find(i=>i.id===state.activeStickerId); if(!sticker){ toast('Primero elegí un sticker.'); openStickersModal(); return; } addMark({ id:uid(), type:'sticker', x:point.x, y:point.y, size:Math.max(20,getMarkOriginalSize()*2.1), stickerId:sticker.id, stickerName:sticker.name, stickerDataUrl:sticker.dataUrl }); }
+
+    function updatePreviewPointFromEvent(event){ if(!state.image) return; state.previewPoint=getPointerCoordinates(event); drawPreview(); }
+    function clearPreview(){ state.previewPoint=null; drawPreview(); }
+
+    function isTouchPointer(event){ return event.pointerType === 'touch'; }
+    function distanceBetween(a,b){ return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
+    function midpointBetween(a,b){ return { x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2 }; }
+    function getActiveTouchPair(){ const touches=[...state.activePointers.values()].filter(p=>p.pointerType==='touch'); return touches.length>=2 ? [touches[0],touches[1]] : null; }
+    function startPinchGesture(){
+      const pair=getActiveTouchPair();
+      if(!pair) return;
+      const distance=distanceBetween(pair[0],pair[1]);
+      if(distance<8) return;
+      state.pinchSession={ startDistance:distance, startZoom:state.zoom, startPanX:state.panX, startPanY:state.panY, startMid:midpointBetween(pair[0],pair[1]) };
+      state.touchTap=null;
+      state.pointerSession=null;
+      state.previewPoint=null;
+      drawPreview();
+    }
+    function updatePinchGesture(){
+      const pair=getActiveTouchPair();
+      if(!pair) return;
+      if(!state.pinchSession) startPinchGesture();
+      const session=state.pinchSession;
+      if(!session) return;
+      const distance=distanceBetween(pair[0],pair[1]);
+      const mid=midpointBetween(pair[0],pair[1]);
+      const nextZoom=Math.min(4,Math.max(.45,session.startZoom*(distance/session.startDistance)));
+      state.zoom=nextZoom;
+      state.panX=session.startPanX+(mid.x-session.startMid.x);
+      state.panY=session.startPanY+(mid.y-session.startMid.y);
+      renderCanvas();
+    }
+    function runToolAction(point,event){
+      if(state.tool==='move'){
+        const hitIndex=hitTestMark(point,true);
+        state.pointerSession={ type:hitIndex>=0?'move-mark':'pan-canvas', pointerId:event.pointerId, startClientX:event.clientX, startClientY:event.clientY, startPanX:state.panX, startPanY:state.panY, markIndex:hitIndex, moved:false };
+        if(hitIndex>=0) pushHistory();
+        canvas.style.cursor='grabbing';
+        return;
+      }
+      if(state.tool==='eraser'){ eraseMarkAt(point); return; }
+      if(state.tool==='text'){
+        const index=hitTestMark(point,true);
+        const hit=index>=0 ? state.project.marks[index] : null;
+        if(hit&&hit.type==='text') openTextModal(point,hit); else openTextModal(point,null);
+        return;
+      }
+      if(state.tool==='sticker'){ addStickerMark(point); return; }
+      if(state.tool==='x'||state.tool==='circle'||state.tool==='square'||state.tool==='flower') addMark(createBasicMark(state.tool,point));
+    }
+    function onCanvasPointerDown(event){
+      if(!state.project||!state.image) return;
+      event.preventDefault();
+      canvas.setPointerCapture?.(event.pointerId);
+      const point=getPointerCoordinates(event);
+      state.previewPoint=point;
+      drawPreview();
+      if(isTouchPointer(event)){
+        state.activePointers.set(event.pointerId,{ pointerType:'touch', clientX:event.clientX, clientY:event.clientY });
+        if(getActiveTouchPair()){
+          startPinchGesture();
+          return;
+        }
+        if(state.tool==='move'){
+          runToolAction(point,event);
+        } else {
+          state.touchTap={ pointerId:event.pointerId, point, startX:event.clientX, startY:event.clientY, moved:false };
+        }
+        return;
+      }
+      runToolAction(point,event);
+    }
+    function onCanvasPointerMove(event){
+      if(isTouchPointer(event) && state.activePointers.has(event.pointerId)){
+        state.activePointers.set(event.pointerId,{ pointerType:'touch', clientX:event.clientX, clientY:event.clientY });
+        if(getActiveTouchPair()){
+          event.preventDefault();
+          updatePinchGesture();
+          return;
+        }
+        if(state.touchTap && state.touchTap.pointerId===event.pointerId){
+          if(Math.hypot(event.clientX-state.touchTap.startX,event.clientY-state.touchTap.startY)>10) state.touchTap.moved=true;
+        }
+      }
+      updatePreviewPointFromEvent(event);
+      if(!state.pointerSession||state.pointerSession.pointerId!==event.pointerId) return;
+      event.preventDefault();
+      state.pointerSession.moved=true;
+      if(state.pointerSession.type==='pan-canvas'){
+        state.panX=state.pointerSession.startPanX+(event.clientX-state.pointerSession.startClientX);
+        state.panY=state.pointerSession.startPanY+(event.clientY-state.pointerSession.startClientY);
+        applyStageTransform();
+        return;
+      }
+      if(state.pointerSession.type==='move-mark'){
+        const point=getPointerCoordinates(event);
+        const mark=state.project.marks[state.pointerSession.markIndex];
+        if(!mark) return;
+        mark.x=point.x;
+        mark.y=point.y;
+        renderCanvas();
+      }
+    }
+    function onCanvasPointerUp(event){
+      const wasPinching=!!state.pinchSession;
+      if(isTouchPointer(event)){
+        state.activePointers.delete(event.pointerId);
+        if(!getActiveTouchPair()) state.pinchSession=null;
+        const pending=state.touchTap;
+        if(pending && pending.pointerId===event.pointerId){
+          state.touchTap=null;
+          if(!wasPinching && !pending.moved && state.tool!=='move'){
+            runToolAction(getPointerCoordinates(event),event);
+          }
+        }
+      }
+      if(state.pointerSession&&state.pointerSession.pointerId===event.pointerId){
+        const session=state.pointerSession;
+        state.pointerSession=null;
+        canvas.style.cursor=state.tool==='move'?'grab':(state.tool==='eraser'?'not-allowed':'crosshair');
+        if(session.type==='move-mark'&&session.moved) queueSave('Guardado');
+      }
+    }
+
+    function bindEvents(){
+      $('#newProjectHeroBtn').addEventListener('click',openNewProject); $('#newProjectTopBtn').addEventListener('click',openNewProject); $('#openStickersHomeBtn').addEventListener('click',()=>openStickersModal());
+      $('#backFromNewBtn').addEventListener('click',async()=>{ showScreen('home'); await renderHome(); }); $('#cancelNewBtn').addEventListener('click',async()=>{ showScreen('home'); await renderHome(); });
+      $('#uploadArea').addEventListener('click',chooseImage); $('#imageInput').addEventListener('change',handlePickedImage); $('#newProjectForm').addEventListener('submit',createProject);
+      $('#backFromEditorBtn').addEventListener('click',async()=>{ await saveProjectName(); showScreen('home'); await renderHome(); }); $('#editorProjectName').addEventListener('change',saveProjectName); $('#editorProjectName').addEventListener('blur',saveProjectName);
+      $('#openStickersEditorBtn').addEventListener('click',()=>openStickersModal()); $('#changeStickerBtn').addEventListener('click',()=>openStickersModal());
+      $$('.tool-btn').forEach(button=>button.addEventListener('click',()=>{ const tool=button.dataset.tool; if(tool==='sticker'&&!state.stickers.length) openStickersModal(); setTool(tool); }));
+      $('#sizeRange').addEventListener('input',e=>{ state.displaySize=Number(e.target.value); updateSizeBadges(); syncStateToProjectSettings(); queueSave('Configuración guardada'); drawPreview(); });
+      $('#fillToggleBtn').addEventListener('click',()=>{ state.fillMode=!state.fillMode; updateFillButton(); syncStateToProjectSettings(); queueSave('Configuración guardada'); drawPreview(); });
+      $('#fontFamilySelect').addEventListener('change',e=>{ state.activeFontFamily=e.target.value; updateTextStyleBar(); syncStateToProjectSettings(); queueSave('Configuración guardada'); drawPreview(); });
+      $('#fontWeightSelect').addEventListener('change',e=>{ state.activeFontWeight=e.target.value; updateTextStyleBar(); syncStateToProjectSettings(); queueSave('Configuración guardada'); drawPreview(); });
+      $('#textModalFontFamily').addEventListener('change',e=>{ state.activeFontFamily=e.target.value; updateTextStyleBar(); applyTextEditorLiveStyle(); drawPreview(); });
+      $('#textModalFontWeight').addEventListener('change',e=>{ state.activeFontWeight=e.target.value; updateTextStyleBar(); applyTextEditorLiveStyle(); drawPreview(); });
+      $('#textEditorInput').addEventListener('input',applyTextEditorLiveStyle);
+      $('#textModalSizeRange').addEventListener('input',e=>{ state.displaySize=Number(e.target.value); updateSizeBadges(); drawPreview(); });
+      $('#undoBtn').addEventListener('click',undo); $('#redoBtn').addEventListener('click',redo); $('#zoomInBtn').addEventListener('click',()=>setZoom(state.zoom+.25)); $('#zoomOutBtn').addEventListener('click',()=>setZoom(state.zoom-.25)); $('#fitBtn').addEventListener('click',fitCanvas); $('#exportBtn').addEventListener('click',()=>exportImage(true)); $('#shareBtn').addEventListener('click',shareImage);
+      canvas.addEventListener('pointerdown',onCanvasPointerDown); canvas.addEventListener('pointermove',onCanvasPointerMove); canvas.addEventListener('pointerup',onCanvasPointerUp); canvas.addEventListener('pointercancel',onCanvasPointerUp); canvas.addEventListener('pointerleave',clearPreview); canvas.addEventListener('pointerenter',updatePreviewPointFromEvent); canvas.addEventListener('contextmenu',e=>e.preventDefault());
+      $('#cancelDeleteBtn').addEventListener('click',()=>{ $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; }); $('#confirmDeleteBtn').addEventListener('click',confirmDelete); $('#deleteModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='deleteModalBackdrop'){ $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; } });
+      $('#cancelTextBtn').addEventListener('click',closeTextModal); $('#saveTextBtn').addEventListener('click',saveTextModal); $('#deleteTextBtn').addEventListener('click',deleteTextModalMark); $('#textModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='textModalBackdrop') closeTextModal(); });
+      $('#closeStickersModalBtn').addEventListener('click',closeStickersModal); $('#stickersModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='stickersModalBackdrop') closeStickersModal(); }); $('#addStickerBtn').addEventListener('click',()=>$('#stickerInput').click()); $('#stickerInput').addEventListener('change',addStickersFromFiles);
+      window.addEventListener('resize',()=>{ if(screens.editor.classList.contains('active')&&state.image){ requestAnimationFrame(()=>{ const availableW=Math.max(220,canvasViewport.clientWidth-38); const availableH=Math.max(260,canvasViewport.clientHeight-38); state.baseScale=Math.min(availableW/state.image.naturalWidth, availableH/state.image.naturalHeight, 1); renderCanvas(); }); } });
+    }
+
+    async function init(){ bindEvents(); populateFontSelects(); updateSizeBadges(); updateTextStyleBar(); buildColorSwatches(); try{ state.db=await openDB(); await loadStickers(); await renderHome(); } catch(err){ console.error(err); $('#projectsGrid').innerHTML=`<div class="empty-card"><div><div class="empty-icon">!</div><h3>Este navegador no habilitó el guardado local</h3><p>Abrí la app desde un navegador o WebView que permita almacenamiento local.</p></div></div>`; } }
+    init();
+  })();
+  </script>
+</body>
+</html>
