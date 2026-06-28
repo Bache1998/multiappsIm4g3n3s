@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#151828" />
-  <title>MarcaPro · Editor móvil</title>
+  <title>MarcaPro · Editor móvil estable</title>
   <style>
     :root{--bg:#0c0f17;--panel:#14192a;--panel2:#1a2034;--line:rgba(255,255,255,.10);--text:#f7f8ff;--muted:#acb3cb;--accent:#8b6dff;--green:#43d39e;--danger:#ff5d79;--radius:22px;--shadow:0 18px 60px rgba(0,0,0,.35);--safe-bottom: env(safe-area-inset-bottom, 0px)}
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif} body{min-height:100dvh}
@@ -89,6 +89,14 @@
       .modal { width: calc(100vw - 20px); max-height: 88dvh; padding: 17px; }
     }
 
+  
+    /* Exportación segura: evita picos de memoria en Android/WebView. */
+    .export-preview-modal{width:min(520px,100%)}
+    .export-preview-frame{display:grid;place-items:center;min-height:180px;max-height:48vh;overflow:auto;border-radius:18px;border:1px solid var(--line);background:#090b12;padding:10px}
+    .export-preview-frame img{display:block;max-width:100%;max-height:44vh;object-fit:contain;border-radius:10px;background:#fff}
+    .export-preview-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+    .export-preview-note{margin:12px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+
   </style>
 </head>
 <body>
@@ -146,6 +154,20 @@
   </div>
 
   <div id="stickersModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="stickersModalTitle"><div class="modal large"><h3 id="stickersModalTitle">Mis stickers</h3><p>Elegí el sticker que querés usar en la imagen. Desde acá mismo también podés agregar o borrar stickers, sin entrar a otra sección.</p><div class="sticker-toolbar"><span class="mini-note">Tus stickers quedan guardados para toda la app.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="stickerInput" type="file" accept="image/*" hidden multiple /><button id="addStickerBtn" class="primary-btn"><span class="icon">＋</span>Agregar sticker</button></div></div><div class="toolbar-note">WhatsApp y WhatsApp Business no permiten que esta versión HTML local lea directamente sus stickers internos. Sí podés importar los stickers manualmente desde archivos o galería.</div><div id="chooseStickerGrid" class="sticker-grid"></div><div class="modal-actions" style="margin-top:18px"><button id="closeStickersModalBtn" class="ghost-btn">Cerrar</button></div></div></div>
+
+
+  <div id="exportPreviewBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="exportPreviewTitle">
+    <div class="modal export-preview-modal">
+      <h3 id="exportPreviewTitle">Imagen lista</h3>
+      <p id="exportPreviewDescription">Tu imagen ya está preparada.</p>
+      <div class="export-preview-frame"><img id="exportPreviewImage" alt="Vista previa de la imagen exportada" /></div>
+      <p id="exportPreviewNote" class="export-preview-note"></p>
+      <div class="export-preview-actions">
+        <button id="exportPreviewSaveBtn" class="primary-btn">Guardar imagen</button>
+        <button id="exportPreviewCloseBtn" class="ghost-btn">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -215,7 +237,7 @@
       baseScale:1, zoom:1, panX:0, panY:0, undoStack:[], redoStack:[], selectedProjectIdForDelete:null,
       saveTimer:null, toastTimer:null, stickers:[], activeStickerId:null, assetCache:new Map(), pointerSession:null,
       textDraftPoint:null, textEditMarkId:null, activeFontFamily:DEFAULT_SETTINGS.activeFontFamily, activeFontWeight:DEFAULT_SETTINGS.activeFontWeight, previewPoint:null,
-      activePointers:new Map(), pinchSession:null, touchTap:null
+      activePointers:new Map(), pinchSession:null, touchTap:null, renderPixelRatio:1, exportBusy:false, exportPreviewUrl:null, exportPreviewBlob:null, exportPreviewFileName:''
     };
 
     function uid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9); }
@@ -313,9 +335,40 @@
 
     function fitCanvas(){ if(!state.image) return; const availableW=Math.max(220,canvasViewport.clientWidth-38); const availableH=Math.max(260,canvasViewport.clientHeight-38); state.baseScale=Math.min(availableW/state.image.naturalWidth, availableH/state.image.naturalHeight, 1); state.zoom=1; state.panX=0; state.panY=0; renderCanvas(); }
     function applyStageTransform(){ canvasStage.style.left='50%'; canvasStage.style.top='50%'; canvasStage.style.transform=`translate(calc(-50% + ${state.panX}px), calc(-50% + ${state.panY}px))`; }
-    function resizeCanvases(width,height){ canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr); previewCanvas.width=Math.round(width*dpr); previewCanvas.height=Math.round(height*dpr); canvas.style.width=`${width}px`; canvas.style.height=`${height}px`; previewCanvas.style.width=`${width}px`; previewCanvas.style.height=`${height}px`; canvasStage.style.width=`${width}px`; canvasStage.style.height=`${height}px`; }
+    const EDITOR_MAX_BUFFER_PIXELS = 3_200_000;
+    const EXPORT_MAX_PIXELS = 6_000_000;
+    const EXPORT_MAX_EDGE = 3200;
+    function getSafeRenderPixelRatio(width,height){
+      const area=Math.max(1,width*height);
+      return Math.max(.65,Math.min(dpr,Math.sqrt(EDITOR_MAX_BUFFER_PIXELS/area)));
+    }
+    function resizeCanvases(width,height){
+      state.renderPixelRatio=getSafeRenderPixelRatio(width,height);
+      const bufferW=Math.max(1,Math.round(width*state.renderPixelRatio));
+      const bufferH=Math.max(1,Math.round(height*state.renderPixelRatio));
+      canvas.width=bufferW; canvas.height=bufferH;
+      previewCanvas.width=bufferW; previewCanvas.height=bufferH;
+      canvas.style.width=`${width}px`; canvas.style.height=`${height}px`;
+      previewCanvas.style.width=`${width}px`; previewCanvas.style.height=`${height}px`;
+      canvasStage.style.width=`${width}px`; canvasStage.style.height=`${height}px`;
+    }
 
-    function renderCanvas(){ if(!state.image||!state.project) return; const displayScale=state.baseScale*state.zoom; const width=Math.max(1,Math.round(state.image.naturalWidth*displayScale)); const height=Math.max(1,Math.round(state.image.naturalHeight*displayScale)); resizeCanvases(width,height); applyStageTransform(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,width,height); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(state.image,0,0,width,height); (state.project.marks||[]).forEach(mark=>drawMark(ctx,mark,displayScale)); $('#zoomBadge').textContent=`${Math.round(state.zoom*100)}%`; updateHistoryButtons(); drawPreview(); }
+    function renderCanvas(){
+      if(!state.image||!state.project) return;
+      const displayScale=state.baseScale*state.zoom;
+      const width=Math.max(1,Math.round(state.image.naturalWidth*displayScale));
+      const height=Math.max(1,Math.round(state.image.naturalHeight*displayScale));
+      resizeCanvases(width,height);
+      applyStageTransform();
+      const ratio=state.renderPixelRatio||1;
+      ctx.setTransform(ratio,0,0,ratio,0,0);
+      ctx.clearRect(0,0,width,height);
+      ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+      ctx.drawImage(state.image,0,0,width,height);
+      (state.project.marks||[]).forEach(mark=>drawMark(ctx,mark,displayScale));
+      $('#zoomBadge').textContent=`${Math.round(state.zoom*100)}%`;
+      updateHistoryButtons(); drawPreview();
+    }
     function getDisplayScale(){ return state.baseScale*state.zoom; } function getMarkOriginalSize(){ return Math.max(6,state.displaySize/getDisplayScale()); }
 
     function drawMultilineText(targetCtx,text,x,y,fontSize,color,fontFamily,fontWeight){ const lines=String(text||'').split('\n'); const lineHeight=fontSize*1.12; const totalHeight=lineHeight*lines.length; const startY=y-totalHeight/2+lineHeight/2; targetCtx.font=`${fontWeight||'800'} ${fontSize}px ${fontFamily||'Inter, Arial, sans-serif'}`; targetCtx.textAlign='center'; targetCtx.textBaseline='middle'; targetCtx.lineWidth=Math.max(2,fontSize*.14); targetCtx.strokeStyle='rgba(0,0,0,.52)'; targetCtx.fillStyle=color; lines.forEach((line,index)=>{ const yy=startY+index*lineHeight; targetCtx.strokeText(line,x,yy); targetCtx.fillText(line,x,yy); }); }
@@ -325,7 +378,19 @@
     function drawShape(targetCtx,mark,scale){ const x=mark.x*scale, y=mark.y*scale, size=Math.max(3,mark.size*scale); targetCtx.save(); targetCtx.lineCap='round'; targetCtx.lineJoin='round'; if(mark.type==='x'){ targetCtx.strokeStyle=mark.color; targetCtx.lineWidth=Math.max(2,size*.17); targetCtx.beginPath(); targetCtx.moveTo(x-size*.48,y-size*.48); targetCtx.lineTo(x+size*.48,y+size*.48); targetCtx.moveTo(x+size*.48,y-size*.48); targetCtx.lineTo(x-size*.48,y+size*.48); targetCtx.stroke(); } else if(mark.type==='circle'){ targetCtx.lineWidth=Math.max(2,size*.14); targetCtx.beginPath(); targetCtx.arc(x,y,size*.50,0,Math.PI*2); if(mark.fill){ targetCtx.fillStyle=mark.color; targetCtx.fill(); } targetCtx.strokeStyle=mark.color; targetCtx.stroke(); } else if(mark.type==='square'){ const half=size*.50; targetCtx.lineWidth=Math.max(2,size*.14); if(mark.fill){ targetCtx.fillStyle=mark.color; targetCtx.fillRect(x-half,y-half,half*2,half*2); } targetCtx.strokeStyle=mark.color; targetCtx.strokeRect(x-half,y-half,half*2,half*2); } else if(mark.type==='flower'){ drawFlower(targetCtx,x,y,size,mark.color); } else if(mark.type==='text'){ drawMultilineText(targetCtx,mark.text||'',x,y,Math.max(12,size*.62),mark.color,mark.fontFamily,mark.fontWeight); } else if(mark.type==='sticker'){ const img=state.assetCache.get(mark.stickerDataUrl); if(img&&img.complete){ const dims=getStickerDimensions({size:Math.max(10,mark.size)},img); const width=dims.width*scale, height=dims.height*scale; targetCtx.drawImage(img,x-width/2,y-height/2,width,height); } else if(mark.stickerDataUrl) ensureAssetLoaded(mark.stickerDataUrl).then(()=>renderCanvas()).catch(()=>null); } targetCtx.restore(); }
     function drawMark(targetCtx,mark,scale){ drawShape(targetCtx,mark,scale); }
 
-    function drawPreview(){ if(!state.image) return; const width=parseFloat(previewCanvas.style.width||0)||previewCanvas.clientWidth; const height=parseFloat(previewCanvas.style.height||0)||previewCanvas.clientHeight; pctx.setTransform(dpr,0,0,dpr,0,0); pctx.clearRect(0,0,width,height); if(!state.previewPoint) return; if(state.tool==='eraser'||state.tool==='move') return; const mock={ type:state.tool, x:state.previewPoint.x, y:state.previewPoint.y, size:getMarkOriginalSize(), color:state.color, fill:state.fillMode, text:'T', fontFamily:state.activeFontFamily, fontWeight:state.activeFontWeight }; if(state.tool==='sticker'){ const sticker=state.stickers.find(s=>s.id===state.activeStickerId); if(!sticker) return; mock.size=Math.max(20,getMarkOriginalSize()*2.1); mock.stickerDataUrl=sticker.dataUrl; } pctx.save(); pctx.globalAlpha=.85; drawShape(pctx,mock,getDisplayScale()); pctx.restore(); }
+    function drawPreview(){
+      if(!state.image) return;
+      const width=parseFloat(previewCanvas.style.width||0)||previewCanvas.clientWidth;
+      const height=parseFloat(previewCanvas.style.height||0)||previewCanvas.clientHeight;
+      const ratio=state.renderPixelRatio||1;
+      pctx.setTransform(ratio,0,0,ratio,0,0);
+      pctx.clearRect(0,0,width,height);
+      if(!state.previewPoint) return;
+      if(state.tool==='eraser'||state.tool==='move') return;
+      const mock={ type:state.tool, x:state.previewPoint.x, y:state.previewPoint.y, size:getMarkOriginalSize(), color:state.color, fill:state.fillMode, text:'T', fontFamily:state.activeFontFamily, fontWeight:state.activeFontWeight };
+      if(state.tool==='sticker'){ const sticker=state.stickers.find(s=>s.id===state.activeStickerId); if(!sticker) return; mock.size=Math.max(20,getMarkOriginalSize()*2.1); mock.stickerDataUrl=sticker.dataUrl; }
+      pctx.save(); pctx.globalAlpha=.85; drawShape(pctx,mock,getDisplayScale()); pctx.restore();
+    }
 
     function getPointerCoordinates(event){ const rect=canvas.getBoundingClientRect(); const x=(event.clientX-rect.left)*state.image.naturalWidth/rect.width; const y=(event.clientY-rect.top)*state.image.naturalHeight/rect.height; return { x:Math.min(Math.max(x,0),state.image.naturalWidth), y:Math.min(Math.max(y,0),state.image.naturalHeight) }; }
     function getTextBounds(mark){ const fontSize=Math.max(12,mark.size*.62); const lines=String(mark.text||'').split('\n'); const maxChars=Math.max(...lines.map(line=>line.length),1); const width=fontSize*Math.max(1.8,maxChars*.70)+20; const height=fontSize*1.22*lines.length+16; return {width,height}; }
@@ -346,10 +411,133 @@
     function undo(){ if(!state.undoStack.length) return; state.redoStack.push(cloneMarks(state.project.marks)); state.project.marks=state.undoStack.pop(); renderCanvas(); queueSave('Guardado'); }
     function redo(){ if(!state.redoStack.length) return; state.undoStack.push(cloneMarks(state.project.marks)); state.project.marks=state.redoStack.pop(); renderCanvas(); queueSave('Guardado'); }
 
-    async function drawExportCanvas(){ const exportCanvas=document.createElement('canvas'); exportCanvas.width=state.image.naturalWidth; exportCanvas.height=state.image.naturalHeight; const exportCtx=exportCanvas.getContext('2d'); exportCtx.imageSmoothingEnabled=true; exportCtx.imageSmoothingQuality='high'; exportCtx.drawImage(state.image,0,0); await preloadProjectAssets(state.project); (state.project.marks||[]).forEach(mark=>drawMark(exportCtx,mark,1)); return exportCanvas; }
-    function canvasToBlob(element,type='image/png',quality){ return new Promise(resolve=>element.toBlob(resolve,type,quality)); }
-    async function exportImage(download=true){ if(!state.project||!state.image) return null; $('#exportBtn').disabled=true; $('#exportBtn').innerHTML='<span class="icon">…</span><span class="hide-mobile-label">Generando</span>'; try{ const exportCanvas=await drawExportCanvas(); const blob=await canvasToBlob(exportCanvas,'image/png'); if(!blob) throw new Error('No se pudo generar la imagen.'); if(download){ const url=URL.createObjectURL(blob); const anchor=document.createElement('a'); anchor.href=url; anchor.download=`${fileSafeName(state.project.name)}-actualizado.png`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(()=>URL.revokeObjectURL(url),1200); toast('Imagen descargada en alta calidad.'); } return blob; } catch(err){ console.error(err); toast('No se pudo exportar la imagen.'); return null; } finally{ $('#exportBtn').disabled=false; $('#exportBtn').innerHTML='<span class="icon">⇩</span><span class="hide-mobile-label">Descargar</span>'; } }
-    async function shareImage(){ if(!state.project) return; const blob=await exportImage(false); if(!blob) return; const file=new File([blob],`${fileSafeName(state.project.name)}-actualizado.png`,{type:'image/png'}); try{ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){ await navigator.share({title:state.project.name,text:'Imagen actualizada con MarcaPro',files:[file]}); } else { const url=URL.createObjectURL(blob); const anchor=document.createElement('a'); anchor.href=url; anchor.download=file.name; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(()=>URL.revokeObjectURL(url),1200); toast('Tu navegador no permite compartir directo. La imagen se descargó.'); } } catch(err){ if(err&&err.name!=='AbortError'){ console.error(err); toast('No se pudo abrir el menú para compartir.'); } } }
+    function getSafeExportPlan(){
+      const sourceW=state.image.naturalWidth;
+      const sourceH=state.image.naturalHeight;
+      const sourcePixels=sourceW*sourceH;
+      const scale=Math.min(1, EXPORT_MAX_EDGE/Math.max(sourceW,sourceH), Math.sqrt(EXPORT_MAX_PIXELS/sourcePixels));
+      const outputW=Math.max(1,Math.round(sourceW*scale));
+      const outputH=Math.max(1,Math.round(sourceH*scale));
+      const outputPixels=outputW*outputH;
+      const usePng=outputPixels<=3_800_000;
+      return { sourceW,sourceH,scale,outputW,outputH,outputPixels,mime:usePng?'image/png':'image/jpeg',extension:usePng?'png':'jpg',quality:usePng?undefined:.96 };
+    }
+    function nextPaint(){ return new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0))); }
+    async function drawExportCanvas(){
+      const plan=getSafeExportPlan();
+      const exportCanvas=document.createElement('canvas');
+      exportCanvas.width=plan.outputW;
+      exportCanvas.height=plan.outputH;
+      const exportCtx=exportCanvas.getContext('2d',{alpha:false});
+      exportCtx.imageSmoothingEnabled=true;
+      exportCtx.imageSmoothingQuality='high';
+      exportCtx.fillStyle='#ffffff';
+      exportCtx.fillRect(0,0,plan.outputW,plan.outputH);
+      exportCtx.drawImage(state.image,0,0,plan.outputW,plan.outputH);
+      await preloadProjectAssets(state.project);
+      (state.project.marks||[]).forEach(mark=>drawMark(exportCtx,mark,plan.scale));
+      return { canvas:exportCanvas, plan };
+    }
+    function canvasToBlob(element,type='image/png',quality){
+      return new Promise((resolve,reject)=>{
+        try { element.toBlob(blob=>blob?resolve(blob):reject(new Error('El navegador no pudo crear la imagen.')),type,quality); }
+        catch(error){ reject(error); }
+      });
+    }
+    function setExportBusy(isBusy,label){
+      state.exportBusy=isBusy;
+      const exportBtn=$('#exportBtn'); const shareBtn=$('#shareBtn');
+      exportBtn.disabled=isBusy; shareBtn.disabled=isBusy;
+      exportBtn.innerHTML=isBusy?'<span class="icon">…</span><span class="hide-mobile-label">'+(label||'Generando')+'</span>':'<span class="icon">⇩</span><span class="hide-mobile-label">Descargar</span>';
+    }
+    function isEmbeddedAndroidWebView(){
+      const ua=navigator.userAgent||'';
+      return /\bwv\b|Version\/4\.0|;\s*wv\)/i.test(ua) || Boolean(window.Android) || Boolean(window.ReactNativeWebView);
+    }
+    function safeFileName(extension){ return `${fileSafeName(state.project?.name||'imagen-editada')}-actualizado.${extension}`; }
+    function downloadBlob(blob,fileName){
+      const url=URL.createObjectURL(blob);
+      const anchor=document.createElement('a');
+      anchor.href=url; anchor.download=fileName; anchor.rel='noopener';
+      anchor.style.position='fixed'; anchor.style.left='-10000px';
+      document.body.appendChild(anchor);
+      anchor.click();
+      setTimeout(()=>{ anchor.remove(); URL.revokeObjectURL(url); },60000);
+    }
+    function releaseExportPreview(){
+      if(state.exportPreviewUrl){ URL.revokeObjectURL(state.exportPreviewUrl); state.exportPreviewUrl=null; }
+      state.exportPreviewBlob=null; state.exportPreviewFileName='';
+      $('#exportPreviewImage').removeAttribute('src');
+    }
+    function openExportPreview(blob,fileName,mode,plan){
+      releaseExportPreview();
+      state.exportPreviewBlob=blob;
+      state.exportPreviewFileName=fileName;
+      state.exportPreviewUrl=URL.createObjectURL(blob);
+      $('#exportPreviewImage').src=state.exportPreviewUrl;
+      $('#exportPreviewTitle').textContent=mode==='share'?'Imagen lista para compartir':'Imagen lista para guardar';
+      $('#exportPreviewDescription').textContent=plan.scale<.999?'Se preparó una copia optimizada para que Android no cierre la app.':'Se preparó en la resolución original segura de tu imagen.';
+      $('#exportPreviewNote').textContent='En esta app Android, mantené presionada la imagen para guardarla. Después podés compartirla desde Galería o Archivos sin que MarcaPro se cierre.';
+      $('#exportPreviewSaveBtn').style.display='none';
+      $('#exportPreviewBackdrop').classList.add('open');
+    }
+    function closeExportPreview(){ $('#exportPreviewBackdrop').classList.remove('open'); releaseExportPreview(); }
+    async function generateExportBlob(){
+      if(!state.project||!state.image) throw new Error('No hay una imagen cargada.');
+      await nextPaint();
+      const rendered=await drawExportCanvas();
+      try{
+        const blob=await canvasToBlob(rendered.canvas,rendered.plan.mime,rendered.plan.quality);
+        return { blob, plan:rendered.plan };
+      } finally {
+        rendered.canvas.width=1; rendered.canvas.height=1;
+      }
+    }
+    async function exportImage(download=true){
+      if(state.exportBusy) return null;
+      setExportBusy(true,download?'Generando':'Preparando');
+      try{
+        const result=await generateExportBlob();
+        const fileName=safeFileName(result.plan.extension);
+        if(download){
+          if(isEmbeddedAndroidWebView()){
+            openExportPreview(result.blob,fileName,'download',result.plan);
+          } else {
+            downloadBlob(result.blob,fileName);
+            toast(result.plan.scale<.999?'Imagen guardada optimizada para estabilidad.':'Imagen descargada en alta calidad.');
+          }
+        }
+        return { ...result,fileName };
+      } catch(error){
+        console.error(error);
+        toast('No se pudo preparar la imagen. Probá con una foto de menor tamaño.');
+        return null;
+      } finally { setExportBusy(false); }
+    }
+    async function shareImage(){
+      if(state.exportBusy) return;
+      const result=await exportImage(false);
+      if(!result) return;
+      if(isEmbeddedAndroidWebView()){
+        openExportPreview(result.blob,result.fileName,'share',result.plan);
+        return;
+      }
+      const file=new File([result.blob],result.fileName,{type:result.plan.mime});
+      try{
+        const canShareFiles=Boolean(navigator.share) && (!navigator.canShare || navigator.canShare({files:[file]}));
+        if(canShareFiles){
+          await navigator.share({title:state.project.name,text:'Imagen actualizada con MarcaPro',files:[file]});
+        } else {
+          downloadBlob(result.blob,result.fileName);
+          toast('Tu navegador no permite compartir directo. La imagen se descargó.');
+        }
+      } catch(error){
+        if(error && error.name==='AbortError') return;
+        console.error(error);
+        downloadBlob(result.blob,result.fileName);
+        toast('No se pudo abrir el menú. La imagen se descargó.');
+      }
+    }
 
     async function saveProjectName(){ if(!state.project) return; const typed=$('#editorProjectName').value.trim(); const nextName=typed||'Proyecto sin nombre'; if(nextName===state.project.name) return; state.project.name=nextName; $('#editorProjectName').value=nextName; queueSave('Nombre guardado'); }
     function askDelete(id){ state.selectedProjectIdForDelete=id; $('#deleteModalBackdrop').classList.add('open'); }
@@ -501,11 +689,12 @@
       $('#textModalFontWeight').addEventListener('change',e=>{ state.activeFontWeight=e.target.value; updateTextStyleBar(); applyTextEditorLiveStyle(); drawPreview(); });
       $('#textEditorInput').addEventListener('input',applyTextEditorLiveStyle);
       $('#textModalSizeRange').addEventListener('input',e=>{ state.displaySize=Number(e.target.value); updateSizeBadges(); drawPreview(); });
-      $('#undoBtn').addEventListener('click',undo); $('#redoBtn').addEventListener('click',redo); $('#zoomInBtn').addEventListener('click',()=>setZoom(state.zoom+.25)); $('#zoomOutBtn').addEventListener('click',()=>setZoom(state.zoom-.25)); $('#fitBtn').addEventListener('click',fitCanvas); $('#exportBtn').addEventListener('click',()=>exportImage(true)); $('#shareBtn').addEventListener('click',shareImage);
+      $('#undoBtn').addEventListener('click',undo); $('#redoBtn').addEventListener('click',redo); $('#zoomInBtn').addEventListener('click',()=>setZoom(state.zoom+.25)); $('#zoomOutBtn').addEventListener('click',()=>setZoom(state.zoom-.25)); $('#fitBtn').addEventListener('click',fitCanvas); $('#exportBtn').addEventListener('click',()=>exportImage(true)); $('#shareBtn').addEventListener('click',shareImage); $('#exportPreviewCloseBtn').addEventListener('click',closeExportPreview); $('#exportPreviewBackdrop').addEventListener('click',e=>{ if(e.target.id==='exportPreviewBackdrop') closeExportPreview(); });
       canvas.addEventListener('pointerdown',onCanvasPointerDown); canvas.addEventListener('pointermove',onCanvasPointerMove); canvas.addEventListener('pointerup',onCanvasPointerUp); canvas.addEventListener('pointercancel',onCanvasPointerUp); canvas.addEventListener('pointerleave',clearPreview); canvas.addEventListener('pointerenter',updatePreviewPointFromEvent); canvas.addEventListener('contextmenu',e=>e.preventDefault());
       $('#cancelDeleteBtn').addEventListener('click',()=>{ $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; }); $('#confirmDeleteBtn').addEventListener('click',confirmDelete); $('#deleteModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='deleteModalBackdrop'){ $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; } });
       $('#cancelTextBtn').addEventListener('click',closeTextModal); $('#saveTextBtn').addEventListener('click',saveTextModal); $('#deleteTextBtn').addEventListener('click',deleteTextModalMark); $('#textModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='textModalBackdrop') closeTextModal(); });
       $('#closeStickersModalBtn').addEventListener('click',closeStickersModal); $('#stickersModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='stickersModalBackdrop') closeStickersModal(); }); $('#addStickerBtn').addEventListener('click',()=>$('#stickerInput').click()); $('#stickerInput').addEventListener('change',addStickersFromFiles);
+      window.addEventListener('pagehide',releaseExportPreview);
       window.addEventListener('resize',()=>{ if(screens.editor.classList.contains('active')&&state.image){ requestAnimationFrame(()=>{ const availableW=Math.max(220,canvasViewport.clientWidth-38); const availableH=Math.max(260,canvasViewport.clientHeight-38); state.baseScale=Math.min(availableW/state.image.naturalWidth, availableH/state.image.naturalHeight, 1); renderCanvas(); }); } });
     }
 
