@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#151828" />
-  <title>MarcaPro · Editor móvil estable</title>
+  <title>MarcaPro · Editor móvil v8</title>
   <style>
     :root{--bg:#0c0f17;--panel:#14192a;--panel2:#1a2034;--line:rgba(255,255,255,.10);--text:#f7f8ff;--muted:#acb3cb;--accent:#8b6dff;--green:#43d39e;--danger:#ff5d79;--radius:22px;--shadow:0 18px 60px rgba(0,0,0,.35);--safe-bottom: env(safe-area-inset-bottom, 0px)}
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif} body{min-height:100dvh}
@@ -215,7 +215,8 @@
       baseScale:1, zoom:1, panX:0, panY:0, undoStack:[], redoStack:[], selectedProjectIdForDelete:null,
       saveTimer:null, toastTimer:null, stickers:[], activeStickerId:null, assetCache:new Map(), pointerSession:null,
       textDraftPoint:null, textEditMarkId:null, activeFontFamily:DEFAULT_SETTINGS.activeFontFamily, activeFontWeight:DEFAULT_SETTINGS.activeFontWeight, previewPoint:null,
-      activePointers:new Map(), pinchSession:null, touchTap:null, renderPixelRatio:1, exportBusy:false
+      activePointers:new Map(), pinchSession:null, touchTap:null, renderPixelRatio:1, exportBusy:false,
+      exportRevision:0, preparedExport:null, preparingExport:false, prepareExportTimer:null, downloadSequence:0
     };
 
     function uid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9); }
@@ -299,7 +300,7 @@
 
     async function createProject(event){ event.preventDefault(); const name=$('#projectNameInput').value.trim(); if(!name){ toast('Poné un nombre para identificar este proyecto.'); $('#projectNameInput').focus(); return; } if(!state.pickedImageBlob){ toast('Elegí la imagen que querés editar.'); return; } const now=new Date().toISOString(); const project={ id:uid(), name, imageBlob:state.pickedImageBlob, marks:[], toolSettings:{...DEFAULT_SETTINGS}, createdAt:now, updatedAt:now }; try{ await dbPut(STORE_PROJECTS,project); await openProject(project.id); toast('Proyecto creado. La imagen original está protegida y conserva su calidad original.'); }catch(err){ console.error(err); toast('No se pudo guardar el proyecto en el dispositivo.'); } }
 
-    async function openProject(id){ try{ const project=await dbGet(STORE_PROJECTS,id); if(!project){ toast('No se encontró ese proyecto.'); await renderHome(); return; } state.project=project; ensureProjectSettings(project); state.image=await imageFromBlob(project.imageBlob); await preloadProjectAssets(project); applyProjectSettings(project); state.zoom=1; state.panX=0; state.panY=0; state.previewPoint=null; state.undoStack=[]; state.redoStack=[]; state.pointerSession=null; $('#editorProjectName').value=project.name; buildColorSwatches(); setTool(state.tool,false); updateFillButton(); updateSizeBadges(); updateTextStyleBar(); showScreen('editor'); requestAnimationFrame(()=>{ fitCanvas(); renderCanvas(); }); }catch(err){ console.error(err); toast('No se pudo abrir este proyecto.'); } }
+    async function openProject(id){ try{ const project=await dbGet(STORE_PROJECTS,id); if(!project){ toast('No se encontró ese proyecto.'); await renderHome(); return; } state.project=project; ensureProjectSettings(project); state.image=await imageFromBlob(project.imageBlob); await preloadProjectAssets(project); applyProjectSettings(project); state.zoom=1; state.panX=0; state.panY=0; state.previewPoint=null; state.undoStack=[]; state.redoStack=[]; state.pointerSession=null; $('#editorProjectName').value=project.name; buildColorSwatches(); setTool(state.tool,false); updateFillButton(); updateSizeBadges(); updateTextStyleBar(); showScreen('editor'); requestAnimationFrame(()=>{ fitCanvas(); renderCanvas(); invalidatePreparedExport(); }); }catch(err){ console.error(err); toast('No se pudo abrir este proyecto.'); } }
 
     function buildColorSwatches(){
       const paintTargets=[{id:'#swatches', kind:'main'},{id:'#textModalColorSwatches',kind:'modal'}];
@@ -376,7 +377,25 @@
 
     function pushHistory(){ state.undoStack.push(cloneMarks(state.project.marks)); if(state.undoStack.length>80) state.undoStack.shift(); state.redoStack=[]; updateHistoryButtons(); }
     function updateHistoryButtons(){ $('#undoBtn').disabled=!state.undoStack.length; $('#redoBtn').disabled=!state.redoStack.length; }
-    function queueSave(message='Guardado'){ $('#saveStatus').textContent='Guardando…'; clearTimeout(state.saveTimer); state.saveTimer=setTimeout(async()=>{ if(!state.project) return; syncStateToProjectSettings(); state.project.updatedAt=new Date().toISOString(); try{ await dbPut(STORE_PROJECTS,state.project); $('#saveStatus').textContent=message; }catch(err){ console.error(err); $('#saveStatus').textContent='Error al guardar'; } },220); }
+    function invalidatePreparedExport(){
+      state.exportRevision += 1;
+      state.preparedExport = null;
+      clearTimeout(state.prepareExportTimer);
+      if(!state.project || !state.image || !screens.editor.classList.contains('active')) return;
+      state.prepareExportTimer = setTimeout(()=>prepareExportAsset(), 520);
+    }
+    function queueSave(message='Guardado'){
+      invalidatePreparedExport();
+      $('#saveStatus').textContent='Guardando…';
+      clearTimeout(state.saveTimer);
+      state.saveTimer=setTimeout(async()=>{
+        if(!state.project) return;
+        syncStateToProjectSettings();
+        state.project.updatedAt=new Date().toISOString();
+        try{ await dbPut(STORE_PROJECTS,state.project); $('#saveStatus').textContent=message; }
+        catch(err){ console.error(err); $('#saveStatus').textContent='Error al guardar'; }
+      },220);
+    }
     function addMark(mark){ pushHistory(); state.project.marks.push(mark); renderCanvas(); queueSave('Guardado'); }
     function createBasicMark(type,point){ return { id:uid(), type, x:point.x, y:point.y, size:getMarkOriginalSize(), color:state.color, fill:!!state.fillMode }; }
 
@@ -429,7 +448,15 @@
       exportBtn.innerHTML=isBusy?'<span class="icon">…</span><span class="hide-mobile-label">'+(label||'Generando')+'</span>':'<span class="icon">⇩</span><span class="hide-mobile-label">Descargar</span>';
     }
 
-    function safeFileName(extension){ return `${fileSafeName(state.project?.name||'imagen-editada')}-actualizado.${extension}`; }
+    function uniqueStamp(){
+      const now=new Date();
+      const pad=value=>String(value).padStart(2,'0');
+      state.downloadSequence=(state.downloadSequence||0)+1;
+      return `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${state.downloadSequence}`;
+    }
+    function safeFileName(extension){
+      return `${fileSafeName(state.project?.name||'imagen-editada')}-actualizado-${uniqueStamp()}.${extension}`;
+    }
     function downloadBlob(blob,fileName){
       const url=URL.createObjectURL(blob);
       const anchor=document.createElement('a');
@@ -450,7 +477,7 @@
     function canShareFile(file){
       if(!navigator.share) return false;
       if(!navigator.canShare) return true;
-      try { return navigator.canShare({files:[file]}); }
+      try{ return navigator.canShare({files:[file]}); }
       catch(error){ return false; }
     }
     async function generateExportBlob(){
@@ -465,46 +492,109 @@
         rendered.canvas.height=1;
       }
     }
+    function validPreparedExport(){
+      const prepared=state.preparedExport;
+      return prepared && prepared.revision===state.exportRevision ? prepared : null;
+    }
+    async function prepareExportAsset(){
+      if(state.preparingExport || state.exportBusy || !state.project || !state.image || !screens.editor.classList.contains('active')) return;
+      const revision=state.exportRevision;
+      state.preparingExport=true;
+      try{
+        const result=await generateExportBlob();
+        if(revision!==state.exportRevision) return;
+        state.preparedExport={...result, revision};
+      }catch(error){
+        console.error(error);
+      }finally{
+        state.preparingExport=false;
+        if(revision!==state.exportRevision && screens.editor.classList.contains('active')){
+          clearTimeout(state.prepareExportTimer);
+          state.prepareExportTimer=setTimeout(()=>prepareExportAsset(),350);
+        }
+      }
+    }
+    function setExportBusy(isBusy,label){
+      state.exportBusy=isBusy;
+      const exportBtn=$('#exportBtn'); const shareBtn=$('#shareBtn');
+      exportBtn.disabled=isBusy; shareBtn.disabled=isBusy;
+      exportBtn.innerHTML=isBusy?'<span class="icon">…</span><span class="hide-mobile-label">'+(label||'Generando')+'</span>':'<span class="icon">⇩</span><span class="hide-mobile-label">Descargar</span>';
+    }
+    async function obtainExportAsset(){
+      const cached=validPreparedExport();
+      if(cached) return cached;
+      const revision=state.exportRevision;
+      const result=await generateExportBlob();
+      const prepared={...result, revision};
+      if(revision===state.exportRevision) state.preparedExport=prepared;
+      return prepared;
+    }
     async function exportImage(download=true){
       if(state.exportBusy) return null;
       setExportBusy(true,download?'Generando':'Preparando');
       try{
-        const result=await generateExportBlob();
+        const result=await obtainExportAsset();
         const fileName=safeFileName(result.plan.extension);
         if(download){
           downloadBlob(result.blob,fileName);
           toast(result.plan.scale<.999?'Imagen descargada optimizada para estabilidad.':'Imagen descargada en alta calidad.');
         }
-        return { ...result,fileName };
-      } catch(error){
+        return {...result,fileName};
+      }catch(error){
         console.error(error);
         toast('No se pudo preparar la imagen. Probá con una foto de menor tamaño.');
         return null;
-      } finally {
+      }finally{
         setExportBusy(false);
       }
     }
-    async function shareImage(){
-      if(state.exportBusy) return;
-      const result=await exportImage(false);
-      if(!result) return;
-      const file=new File([result.blob],result.fileName,{type:result.plan.mime});
+    function sharePreparedNow(prepared){
+      const fileName=safeFileName(prepared.plan.extension);
+      const file=new File([prepared.blob],fileName,{type:prepared.plan.mime,lastModified:Date.now()});
+      if(!canShareFile(file)){
+        downloadBlob(prepared.blob,fileName);
+        toast('Este contenedor no expone compartir archivos. La imagen se descargó.');
+        return;
+      }
+      // IMPORTANT: navigator.share is called synchronously in this user tap.
+      // AppCreator/Android WebViews can reject it when it is called only after canvas.toBlob awaits.
       try{
-        if(canShareFile(file)){
-          await navigator.share({
-            title:state.project.name,
-            text:'Imagen actualizada con MarcaPro',
-            files:[file]
-          });
-        } else {
-          downloadBlob(result.blob,result.fileName);
-          toast('Este dispositivo no permite compartir directo. La imagen se descargó.');
-        }
-      } catch(error){
-        if(error&&error.name==='AbortError') return;
+        const sharePromise=navigator.share({
+          title:state.project.name,
+          text:'Imagen actualizada con MarcaPro',
+          files:[file]
+        });
+        Promise.resolve(sharePromise).catch(error=>{
+          if(error&&error.name==='AbortError') return;
+          console.error(error);
+          toast('No se pudo abrir el menú para compartir. Probá con Descargar.');
+        });
+      }catch(error){
         console.error(error);
         toast('No se pudo abrir el menú para compartir. Probá con Descargar.');
       }
+    }
+    function shareImage(){
+      if(state.exportBusy) return;
+      const prepared=validPreparedExport();
+      if(prepared){
+        sharePreparedNow(prepared);
+        return;
+      }
+      // The asset is normally created automatically after each edit. If the user taps very fast,
+      // prepare it first instead of losing the Android user gesture in an async conversion.
+      prepareExportAsset();
+      toast('Preparando la imagen. Tocá Compartir otra vez en un instante.');
+    }
+    function downloadImage(){
+      const prepared=validPreparedExport();
+      if(prepared){
+        const fileName=safeFileName(prepared.plan.extension);
+        downloadBlob(prepared.blob,fileName);
+        toast(prepared.plan.scale<.999?'Imagen descargada optimizada para estabilidad.':'Imagen descargada en alta calidad.');
+        return;
+      }
+      exportImage(true);
     }
 
     async function saveProjectName(){ if(!state.project) return; const typed=$('#editorProjectName').value.trim(); const nextName=typed||'Proyecto sin nombre'; if(nextName===state.project.name) return; state.project.name=nextName; $('#editorProjectName').value=nextName; queueSave('Nombre guardado'); }
@@ -646,7 +736,7 @@
       $('#newProjectHeroBtn').addEventListener('click',openNewProject); $('#newProjectTopBtn').addEventListener('click',openNewProject); $('#openStickersHomeBtn').addEventListener('click',()=>openStickersModal());
       $('#backFromNewBtn').addEventListener('click',async()=>{ showScreen('home'); await renderHome(); }); $('#cancelNewBtn').addEventListener('click',async()=>{ showScreen('home'); await renderHome(); });
       $('#uploadArea').addEventListener('click',chooseImage); $('#imageInput').addEventListener('change',handlePickedImage); $('#newProjectForm').addEventListener('submit',createProject);
-      $('#backFromEditorBtn').addEventListener('click',async()=>{ await saveProjectName(); showScreen('home'); await renderHome(); }); $('#editorProjectName').addEventListener('change',saveProjectName); $('#editorProjectName').addEventListener('blur',saveProjectName);
+      $('#backFromEditorBtn').addEventListener('click',async()=>{ await saveProjectName(); clearTimeout(state.prepareExportTimer); state.preparedExport=null; showScreen('home'); await renderHome(); }); $('#editorProjectName').addEventListener('change',saveProjectName); $('#editorProjectName').addEventListener('blur',saveProjectName);
       $('#openStickersEditorBtn').addEventListener('click',()=>openStickersModal()); $('#changeStickerBtn').addEventListener('click',()=>openStickersModal());
       $$('.tool-btn').forEach(button=>button.addEventListener('click',()=>{ const tool=button.dataset.tool; if(tool==='sticker'&&!state.stickers.length) openStickersModal(); setTool(tool); }));
       $('#sizeRange').addEventListener('input',e=>{ state.displaySize=Number(e.target.value); updateSizeBadges(); syncStateToProjectSettings(); queueSave('Configuración guardada'); drawPreview(); });
@@ -657,7 +747,7 @@
       $('#textModalFontWeight').addEventListener('change',e=>{ state.activeFontWeight=e.target.value; updateTextStyleBar(); applyTextEditorLiveStyle(); drawPreview(); });
       $('#textEditorInput').addEventListener('input',applyTextEditorLiveStyle);
       $('#textModalSizeRange').addEventListener('input',e=>{ state.displaySize=Number(e.target.value); updateSizeBadges(); drawPreview(); });
-      $('#undoBtn').addEventListener('click',undo); $('#redoBtn').addEventListener('click',redo); $('#zoomInBtn').addEventListener('click',()=>setZoom(state.zoom+.25)); $('#zoomOutBtn').addEventListener('click',()=>setZoom(state.zoom-.25)); $('#fitBtn').addEventListener('click',fitCanvas); $('#exportBtn').addEventListener('click',()=>exportImage(true)); $('#shareBtn').addEventListener('click',shareImage);
+      $('#undoBtn').addEventListener('click',undo); $('#redoBtn').addEventListener('click',redo); $('#zoomInBtn').addEventListener('click',()=>setZoom(state.zoom+.25)); $('#zoomOutBtn').addEventListener('click',()=>setZoom(state.zoom-.25)); $('#fitBtn').addEventListener('click',fitCanvas); $('#exportBtn').addEventListener('click',downloadImage); $('#shareBtn').addEventListener('click',shareImage);
       canvas.addEventListener('pointerdown',onCanvasPointerDown); canvas.addEventListener('pointermove',onCanvasPointerMove); canvas.addEventListener('pointerup',onCanvasPointerUp); canvas.addEventListener('pointercancel',onCanvasPointerUp); canvas.addEventListener('pointerleave',clearPreview); canvas.addEventListener('pointerenter',updatePreviewPointFromEvent); canvas.addEventListener('contextmenu',e=>e.preventDefault());
       $('#cancelDeleteBtn').addEventListener('click',()=>{ $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; }); $('#confirmDeleteBtn').addEventListener('click',confirmDelete); $('#deleteModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='deleteModalBackdrop'){ $('#deleteModalBackdrop').classList.remove('open'); state.selectedProjectIdForDelete=null; } });
       $('#cancelTextBtn').addEventListener('click',closeTextModal); $('#saveTextBtn').addEventListener('click',saveTextModal); $('#deleteTextBtn').addEventListener('click',deleteTextModalMark); $('#textModalBackdrop').addEventListener('click',e=>{ if(e.target.id==='textModalBackdrop') closeTextModal(); });
